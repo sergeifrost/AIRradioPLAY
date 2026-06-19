@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Player</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: url('fon.jpg') no-repeat center center fixed;
+            background-color: #808080;
+            background-size: cover;
+            color: white;
+            min-height: 100vh;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .player-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-container {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+            position: relative;
+            margin: 0 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 30px 8px 10px;
+            border-radius: 20px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 5px #1e90ff;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            opacity: 0.7;
+        }
+
+        .station-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .station-item {
+            padding: 12px 15px;
+            margin: 5px 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .station-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .station-item.active {
+            background-color: rgba(30, 144, 255, 0.7);
+            font-weight: bold;
+        }
+
+        .station-item.selected {
+            background-color: rgba(30, 144, 255, 0.4);
+            border-left: 3px solid #1e90ff;
+        }
+
+        .station-item.in-favorites {
+            background-color: rgba(76, 175, 80, 0.3);
+            border-left: 3px solid #4CAF50;
+        }
+
+        .station-item.in-favorites:hover {
+            background-color: rgba(76, 175, 80, 0.4);
+        }
+
+        .station-url {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-left: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 50%;
+        }
+
+        .controls {
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid #444;
+        }
+
+        .control-btn {
+            background-color: #555;
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-btn:hover { background-color: #666; }
+        .control-btn:active { background-color: #777; }
+
+        .volume-container { display:flex; align-items:center; gap:10px; width:100%; max-width:200px; }
+        .volume-control { flex:1; }
+
+        .now-playing {
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            text-align: center;
+            font-style: italic;
+            border-top: 1px solid #444;
+            min-height: 20px;
+            text-shadow: 0 0 5px #1e90ff, 0 0 10px #1e90ff;
+            position: relative;
+        }
+        .now-playing::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #1e90ff, transparent);
+            animation: neonLine 2s infinite;
+        }
+        @keyframes neonLine { 0% {opacity: 0.3;} 50% {opacity:1;} 100% {opacity:0.3;} }
+
+        .file-input { display:none; }
+        .file-input-label, .save-btn, .add-selected-btn {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            text-align: center;
+            color: white;
+            border: none;
+            min-width: 180px;
+        }
+        .file-input-label:hover, .save-btn:hover, .add-selected-btn:hover { background-color: #45a049; }
+        .save-btn { background-color: #2196F3; }
+        .save-btn:hover { background-color: #0b7dda; }
+        .add-selected-btn { background-color: #FF9800; }
+        .add-selected-btn:hover { background-color: #F57C00; }
+
+        .remove-btn { padding:5px 10px; background:#f44336; border:none; border-radius:3px; color:white; cursor:pointer; transition:all .3s; font-size:12px; margin-left:10px; }
+        .remove-btn:hover { background:#d32f2f; }
+        .add-btn { padding:5px 10px; background:#2196F3; border:none; border-radius:3px; color:white; cursor:pointer; transition:all .3s; font-size:12px; margin-left:10px; }
+        .add-btn:hover { background:#0b7dda; }
+        .copy-btn { padding:5px 10px; background:#673AB7; border:none; border-radius:3px; color:white; cursor:pointer; transition:all .3s; font-size:12px; margin-left:10px; white-space:nowrap; }
+        .copy-btn:hover { background:#5E35B1; }
+        .copy-btn.copied { background:#4CAF50; }
+
+        .station-number { flex:0 0 30px; text-align:right; margin-right:10px; color:#aaa; font-weight:bold; }
+
+        .station-item.working { background-color: rgba(30, 144, 255, 0.1); }
+        .station-item.not-working { background-color: rgba(128, 128, 128, 0.1); color:#888; }
+        .station-item.not-working .station-url { color:#666; }
+        .checking-status { position:relative; padding-left:20px; }
+        .checking-status::before { content:"🔄"; position:absolute; left:5px; animation:spin 1s linear infinite; }
+        @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+        .station-name-editable { cursor:pointer; flex:1; margin-right:10px; position:relative; }
+        .station-name-editable:hover::after {
+            content: "Двойной клик для редактирования";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+            animation: fadeIn .3s ease-out;
+        }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .station-name-editable:hover { text-decoration: underline dotted #1e90ff; }
+        .station-name-input { width:100%; background:rgba(255,255,255,0.2); border:1px solid #1e90ff; color:white; padding:2px 5px; border-radius:3px; font-family:inherit; font-size:inherit; }
+        .station-name-input:focus { outline:none; border-color:#4CAF50; box-shadow:0 0 5px rgba(76,175,80,0.5); }
+
+        .sortable-header { cursor:pointer; position:relative; padding-right:15px; }
+        .sortable-header:hover { text-decoration: underline; }
+        .sortable-header::after { content:"↕"; position:absolute; right:0; opacity:.5; font-size:.8em; }
+        .sortable-header.asc::after { content:"↑"; opacity:1; }
+        .sortable-header.desc::after { content:"↓"; opacity:1; }
+
+        .list-header { display:flex; padding:8px 15px; background:rgba(0,0,0,0.3); border-bottom:1px solid #444; font-weight:bold; user-select:none; }
+        .list-header-item { flex:1; display:flex; align-items:center; }
+        .list-header-actions { flex:0 0 auto; display:flex; justify-content:flex-end; }
+        .header-remove-btn { padding:3px 8px; background:#f44336; border:none; border-radius:3px; color:white; cursor:pointer; transition:.3s; font-size:12px; }
+        .header-remove-btn:hover { background:#d32f2f; }
+        .select-all-checkbox { margin-right:10px; cursor:pointer; }
+
+        .station-list::-webkit-scrollbar { width:8px; }
+        .station-list::-webkit-scrollbar-track { background:rgba(255,255,255,0.1); border-radius:4px; }
+        .station-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.3); border-radius:4px; }
+        .station-list::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.5); }
+
+        .sort-buttons {
+            display: flex;
+            gap: 5px;
+            margin-left: 10px;
+        }
+        .sort-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #555;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .sort-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: #1e90ff;
+        }
+
+        @media (max-width: 1200px) {
+            body { flex-direction: column; padding: 10px; height: auto; min-height: 100vh; }
+            .player-container { width:100%; height:auto; min-height:300px; margin-bottom:20px; }
+            #main-player, #custom-player { order:0; }
+            .controls { gap:10px; padding:10px; }
+            .volume-container { width:100%; margin-top:10px; }
+            .control-btn { width:50px; height:50px; font-size:20px; }
+            .search-container { width:100%; max-width:none; margin:10px 0; }
+            .station-url { max-width:40%; }
+            .station-list { max-height:30vh; overflow-y:auto; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Основной плеер -->
+    <div class="player-container" id="main-player">
+        <div class="header">
+            <h1>Radio Player</h1>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-input" placeholder="Поиск станций...">
+                <span class="search-icon">🔍</span>
+            </div>
+        </div>
+        <div class="now-playing" id="now-playing">Загрузите плейлист</div>
+        <div class="list-header">
+            <div class="list-header-item">
+                <input type="checkbox" class="select-all-checkbox" id="select-all-main">
+                <span class="sortable-header" id="sort-name">Название</span>
+            </div>
+            <div class="list-header-item">
+                <span class="sortable-header" id="sort-url">Ссылка</span>
+            </div>
+            <button class="add-selected-btn" id="add-selected-btn">Добавить выделенное →</button>
+        </div>
+        <div class="station-list" id="station-list"></div>
+        <div class="controls">
+            <button class="control-btn" id="prev-btn" title="Предыдущая">⏮</button>
+            <button class="control-btn" id="play-btn" title="Воспроизвести">▶</button>
+            <button class="control-btn" id="stop-btn" title="Стоп">⏹</button>
+            <button class="control-btn" id="next-btn" title="Следующая">⏭</button>
+            <div class="volume-container">
+                <span>🔈</span>
+                <input type="range" class="volume-control" id="volume-control" min="0" max="1" step="0.01" value="0.5">
+                <span>🔊</span>
+            </div>
+            <input type="file" id="file-input" class="file-input" accept=".m3u,.pls,.txt,.json,.csv">
+            <label for="file-input" class="file-input-label">Загрузить плейлист</label>
+            
+        </div>
+    </div>
+
+    <!-- Плеер для пользовательского плейлиста -->
+    <div class="player-container" id="custom-player">
+        <div class="header">
+            <h1>my Playlist</h1>
+            <div class="search-container">
+                <input type="text" class="search-input" id="custom-search-input" placeholder="Поиск станций...">
+                <span class="search-icon">🔍</span>
+            </div>
+        </div>
+        <div class="now-playing" id="custom-now-playing">Добавьте станции из основного плеера</div>
+        <div class="list-header">
+            <div class="list-header-item">
+                <input type="checkbox" class="select-all-checkbox" id="select-all-custom">
+                <span class="sortable-header" id="custom-sort-name">Название</span>
+                <div class="sort-buttons">
+                    <button class="sort-btn" id="custom-sort-up" title="Переместить вверх">↑</button>
+                    <button class="sort-btn" id="custom-sort-down" title="Переместить вниз">↓</button>
+                </div>
+            </div>
+            <div class="list-header-item">
+                <span class="sortable-header" id="custom-sort-url">Ссылка</span>
+            </div>
+            <div class="list-header-item list-header-actions">
+                <button class="header-remove-btn" id="remove-selected-btn" title="Удалить выбранные">✕</button>
+            </div>
+        </div>
+        <div class="station-list" id="custom-station-list"></div>
+        <div class="controls">
+            <button class="control-btn" id="custom-prev-btn" title="Предыдущая">⏮</button>
+            <button class="control-btn" id="custom-play-btn" title="Воспроизвести">▶</button>
+            <button class="control-btn" id="custom-stop-btn" title="Стоп">⏹</button>
+            <button class="control-btn" id="custom-next-btn" title="Следующая">⏭</button>
+            <div class="volume-container">
+                <span>🔈</span>
+                <input type="range" class="volume-control" id="custom-volume-control" min="0" max="1" step="0.01" value="0.5">
+                <span>🔊</span>
+            </div>
+            <button class="save-btn" id="save-btn">Экспорт для AIR радио</button>
+        </div>
+    </div>
+
+    <script>
+        // ====== Аудио и состояния ======
+        const audio = new Audio();
+        const customAudio = new Audio();
+        let currentStationIndex = -1;
+        let customStationIndex = -1;
+        let stations = [];
+        let customStations = [];
+        let currentSearchQuery = '';
+        let customSearchQuery = '';
+        let selectedStations = new Set();
+        let selectedCustomStations = new Set();
+        let sortState = { field: null, direction: null };
+        let customSortState = { field: null, direction: null };
+
+        // ====== Ключи localStorage ======
+        const STORAGE_KEYS = {
+            main: 'radioPlayer_mainStations',
+            custom: 'radioPlayer_customStations'
+        };
+
+        function saveStationsToLocalStorage(){
+            try { localStorage.setItem(STORAGE_KEYS.main, JSON.stringify(stations)); } catch(e){ console.error('Ошибка сохранения основного плейлиста в localStorage', e); }
+        }
+        function loadStationsFromLocalStorage(){
+            try { const raw = localStorage.getItem(STORAGE_KEYS.main); if (raw){ const data = JSON.parse(raw); if (Array.isArray(data)) stations = data; } } catch(e){ console.error('Ошибка загрузки основного плейлиста из localStorage', e); }
+        }
+        function saveCustomToLocalStorage(){
+            try { localStorage.setItem(STORAGE_KEYS.custom, JSON.stringify(customStations)); } catch(e){ console.error('Ошибка сохранения пользовательского плейлиста в localStorage', e); }
+        }
+        function loadCustomFromLocalStorage(){
+            try { const raw = localStorage.getItem(STORAGE_KEYS.custom); if (raw){ const data = JSON.parse(raw); if (Array.isArray(data)) customStations = data; } } catch(e){ console.error('Ошибка загрузки пользовательского плейлиста из localStorage', e); }
+        }
+
+        // ====== Парсеры плейлистов ======
+        function parseM3U(content) {
+            const lines = content.split('\n');
+            const result = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const name = line.split(',')[1] || `Станция ${result.length + 1}`;
+                    const url = lines[i+1]?.trim();
+                    if (url && !url.startsWith('#')) { result.push({ name, url }); i++; }
+                } else if (line && !line.startsWith('#') && line.startsWith('http')) {
+                    result.push({ name: `Станция ${result.length + 1}`, url: line });
+                }
+            }
+            return result;
+        }
+        function parsePLS(content) {
+            const lines = content.split('\n');
+            const result = []; let fileEntries = []; let titleEntries = [];
+            for (const line of lines) {
+                if (line.startsWith('File')) { const m = line.match(/File(\d+)=(.+)/); if (m) fileEntries[parseInt(m[1])] = m[2]; }
+                else if (line.startsWith('Title')) { const m = line.match(/Title(\d+)=(.+)/); if (m) titleEntries[parseInt(m[1])] = m[2]; }
+            }
+            const count = Math.min(fileEntries.length, titleEntries.length);
+            for (let i = 1; i <= count; i++) { if (fileEntries[i] && titleEntries[i]) result.push({ name: titleEntries[i], url: fileEntries[i] }); }
+            return result;
+        }
+        function parseCSV(content) {
+            const lines = content.split(/\r?\n/);
+            const result = [];
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('#')) continue;
+                let fields;
+                if (trimmed.includes('\",\"')) { fields = trimmed.split(/\",\"/).map(f => f.replace(/^\"|\"$/g, '')); }
+                else if (trimmed.includes(';')) { fields = trimmed.split(';').map(f => f.trim()); }
+                else if (trimmed.includes('\t')) { fields = trimmed.split('\t').map(f => f.trim()); }
+                else { fields = trimmed.split(',').map(f => f.trim()); }
+                if (fields.length >= 2) {
+                    const name = fields[0]; const url = fields[1];
+                    if (url && (url.startsWith('http://') || url.startsWith('https://'))) { result.push({ name, url }); }
+                }
+            }
+            return result;
+        }
+        function parseTextPlaylist(content) {
+            const lines = content.split('\n');
+            const result = [];
+            for (const line of lines) {
+                const trimmed = line.trim(); if (!trimmed) continue;
+                const separator = trimmed.includes(',') ? ',' : trimmed.includes(';') ? ';' : trimmed.includes('\t') ? '\t' : null;
+                if (separator) {
+                    const parts = trimmed.split(separator);
+                    if (parts.length >= 2) { result.push({ name: parts[0].trim(), url: parts[1].trim() }); }
+                } else if (trimmed.startsWith('http')) { result.push({ name: `Станция ${result.length + 1}`, url: trimmed }); }
+            }
+            return result;
+        }
+
+        // ====== Загрузка из файла ======
+        function loadPlaylistFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                let parsedStations = [];
+                if (file.name.endsWith('.m3u')) parsedStations = parseM3U(content);
+                else if (file.name.endsWith('.pls')) parsedStations = parsePLS(content);
+                else if (file.name.endsWith('.csv')) parsedStations = parseCSV(content);
+                else if (file.name.endsWith('.json')) { try { parsedStations = JSON.parse(content); } catch (error) { console.error('Ошибка парсинга JSON:', error); } }
+                else parsedStations = parseTextPlaylist(content);
+                if (parsedStations.length > 0) {
+                    stations = parsedStations;
+                    saveStationsToLocalStorage();
+                    displayStations();
+                    document.getElementById('now-playing').textContent = `Загружено ${stations.length} станций`;
+                    selectedStations = new Set();
+                } else {
+                    document.getElementById('now-playing').textContent = 'Не удалось загрузить станции из файла';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ====== Утилиты ======
+        function isInCustomPlaylist(url) { return customStations.some(station => station.url === url); }
+        function searchStations(query, isCustom = false) {
+            if (isCustom) { customSearchQuery = query.toLowerCase(); displayCustomStations(); }
+            else { currentSearchQuery = query.toLowerCase(); displayStations(); }
+        }
+        function sortStations(field, isCustom = false) {
+            const list = isCustom ? customStations : stations;
+            const currentSortState = isCustom ? customSortState : sortState;
+            if (currentSortState.field === field) currentSortState.direction = currentSortState.direction === 'asc' ? 'desc' : 'asc';
+            else { currentSortState.field = field; currentSortState.direction = 'asc'; }
+            list.sort((a, b) => {
+                const valA = (a[field]||'').toLowerCase();
+                const valB = (b[field]||'').toLowerCase();
+                if (valA < valB) return currentSortState.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return currentSortState.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            if (isCustom) { displayCustomStations(); saveCustomToLocalStorage(); }
+            else { displayStations(); saveStationsToLocalStorage(); }
+            updateSortHeaders(field, currentSortState.direction, isCustom);
+        }
+        function updateSortHeaders(field, direction, isCustom) {
+            const nameHeader = isCustom ? document.getElementById('custom-sort-name') : document.getElementById('sort-name');
+            const urlHeader = isCustom ? document.getElementById('custom-sort-url') : document.getElementById('sort-url');
+            nameHeader.classList.remove('asc', 'desc');
+            urlHeader.classList.remove('asc', 'desc');
+            if (field === 'name') nameHeader.classList.add(direction);
+            else if (field === 'url') urlHeader.classList.add(direction);
+        }
+
+        // ====== Кнопки сортировки вверх/вниз ======
+        function copyTextFallback(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.setAttribute('readonly', '');
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            if (!successful) throw new Error('Copy command failed');
+        }
+
+        async function copyStationUrl(url, button) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(url);
+                else copyTextFallback(url);
+
+                const originalText = button.textContent;
+                button.textContent = 'Скопировано';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 1500);
+            } catch (error) {
+                console.error('Ошибка копирования ссылки:', error);
+                alert('Не удалось скопировать ссылку в буфер обмена');
+            }
+        }
+
+        function moveSelectedStationsUp() {
+            if (selectedCustomStations.size === 0) return;
+            
+            const indices = Array.from(selectedCustomStations).sort((a, b) => a - b);
+            if (indices[0] === 0) return; // Нельзя переместить выше первой позиции
+            
+            for (const index of indices) {
+                if (index > 0) {
+                    // Меняем местами элементы
+                    [customStations[index], customStations[index - 1]] = [customStations[index - 1], customStations[index]];
+                    // Обновляем индексы в selectedCustomStations
+                    selectedCustomStations.delete(index);
+                    selectedCustomStations.add(index - 1);
+                }
+            }
+            
+            saveCustomToLocalStorage();
+            displayCustomStations();
+        }
+
+        function moveSelectedStationsDown() {
+            if (selectedCustomStations.size === 0) return;
+            
+            const indices = Array.from(selectedCustomStations).sort((a, b) => b - a);
+            if (indices[0] === customStations.length - 1) return; // Нельзя переместить ниже последней позиции
+            
+            for (const index of indices) {
+                if (index < customStations.length - 1) {
+                    // Меняем местами элементы
+                    [customStations[index], customStations[index + 1]] = [customStations[index + 1], customStations[index]];
+                    // Обновляем индексы в selectedCustomStations
+                    selectedCustomStations.delete(index);
+                    selectedCustomStations.add(index + 1);
+                }
+            }
+            
+            saveCustomToLocalStorage();
+            displayCustomStations();
+        }
+
+        // ====== Добавление выделенных станций ======
+        function addSelectedStations() {
+            if (selectedStations.size === 0) {
+                alert('Выберите станции для добавления!');
+                return;
+            }
+
+            let addedCount = 0;
+            const indices = Array.from(selectedStations).sort((a, b) => a - b);
+            
+            indices.forEach(index => {
+                const station = stations[index];
+                const exists = customStations.some(s => s.url === station.url);
+                if (!exists) {
+                    customStations.push({...station});
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                saveCustomToLocalStorage();
+                displayCustomStations();
+                document.getElementById('custom-now-playing').textContent = `Добавлено ${addedCount} станций`;
+                displayStations();
+            } else {
+                alert('Все выбранные станции уже есть в вашем плейлисте!');
+            }
+        }
+
+        // ====== Рендер левого списка ======
+        function displayStations() {
+            const stationList = document.getElementById('station-list');
+            stationList.innerHTML = '';
+            if (stations.length === 0) { stationList.innerHTML = '<div class="station-item">Нет станций. Загрузите плейлист.</div>'; return; }
+            const filteredStations = stations.filter(station => !currentSearchQuery || station.name.toLowerCase().includes(currentSearchQuery) || station.url.toLowerCase().includes(currentSearchQuery));
+            if (filteredStations.length === 0) { stationList.innerHTML = '<div class="station-item">Станции не найдены</div>'; return; }
+            filteredStations.forEach((station, index) => {
+                const originalIndex = stations.indexOf(station);
+                const stationElement = document.createElement('div');
+                stationElement.className = 'station-item';
+                stationElement.dataset.index = originalIndex;
+                if (selectedStations.has(originalIndex)) stationElement.classList.add('selected');
+                if (isInCustomPlaylist(station.url)) stationElement.classList.add('in-favorites');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = selectedStations.has(originalIndex);
+                checkbox.style.marginRight = '10px';
+                checkbox.addEventListener('click', (e) => { e.stopPropagation(); toggleStationSelection(originalIndex, false); });
+
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'station-number';
+                numberSpan.textContent = `${originalIndex + 1}.`;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'station-name-editable';
+                nameSpan.textContent = station.name;
+
+                const selectAllCheckbox = document.getElementById('select-all-main');
+                if (selectedStations.size > 0) {
+                    const filteredStations = stations.filter(station => !currentSearchQuery || station.name.toLowerCase().includes(currentSearchQuery) || station.url.toLowerCase().includes(currentSearchQuery));
+                    const allFilteredSelected = filteredStations.every(station => selectedStations.has(stations.indexOf(station)));
+                    selectAllCheckbox.checked = allFilteredSelected;
+                    selectAllCheckbox.indeterminate = !allFilteredSelected && selectedStations.size > 0;
+                } else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
+
+                const urlSpan = document.createElement('span');
+                urlSpan.className = 'station-url';
+                urlSpan.textContent = station.url;
+
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = 'Копировать';
+                copyBtn.title = 'Скопировать ссылку станции';
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    copyStationUrl(station.url, copyBtn);
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.className = 'add-btn';
+                addBtn.innerHTML = '&rarr;';
+                addBtn.title = 'Добавить в избранное';
+                addBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const exists = customStations.some(s => s.url === station.url);
+                    if (!exists) {
+                        customStations.push({...station});
+                        saveCustomToLocalStorage();
+                        displayCustomStations();
+                        document.getElementById('custom-now-playing').textContent = `Добавлена станция: ${station.name}`;
+                        displayStations();
+                    } else { alert('Эта станция уже есть в вашем плейлисте!'); }
+                });
+
+                stationElement.appendChild(checkbox);
+                stationElement.appendChild(numberSpan);
+                stationElement.appendChild(nameSpan);
+                stationElement.appendChild(urlSpan);
+                stationElement.appendChild(copyBtn);
+                stationElement.appendChild(addBtn);
+
+                stationElement.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                        if (e.ctrlKey || e.metaKey) toggleStationSelection(originalIndex, false);
+                        else if (e.shiftKey) selectStationRange(originalIndex, false);
+                        else playStation(originalIndex);
+                    }
+                });
+
+                stationList.appendChild(stationElement);
+            });
+        }
+
+        // ====== Рендер кастомного списка ======
+        function displayCustomStations() {
+            const customStationList = document.getElementById('custom-station-list');
+            customStationList.innerHTML = '';
+            if (customStations.length === 0) { customStationList.innerHTML = '<div class="station-item">Добавьте сюда станции из основного плеера</div>'; return; }
+            const selectAllCustomCheckbox = document.getElementById('select-all-custom');
+            if (selectedCustomStations.size > 0) {
+                const filteredStations = customStations.filter(station => !customSearchQuery || station.name.toLowerCase().includes(customSearchQuery) || station.url.toLowerCase().includes(customSearchQuery));
+                const allFilteredSelected = filteredStations.every(station => selectedCustomStations.has(customStations.indexOf(station)));
+                selectAllCustomCheckbox.checked = allFilteredSelected;
+                selectAllCustomCheckbox.indeterminate = !allFilteredSelected && selectedCustomStations.size > 0;
+            } else { selectAllCustomCheckbox.checked = false; selectAllCustomCheckbox.indeterminate = false; }
+
+            const filteredStations = customStations.filter(station => !customSearchQuery || station.name.toLowerCase().includes(customSearchQuery) || station.url.toLowerCase().includes(customSearchQuery));
+            if (filteredStations.length === 0) { customStationList.innerHTML = '<div class="station-item">Станции не найдены</div>'; return; }
+
+            filteredStations.forEach((station, index) => {
+                const originalIndex = customStations.indexOf(station);
+                const stationElement = document.createElement('div');
+                stationElement.className = 'station-item';
+                stationElement.draggable = true;
+                stationElement.dataset.index = originalIndex;
+                if (selectedCustomStations.has(originalIndex)) stationElement.classList.add('selected');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = selectedCustomStations.has(originalIndex);
+                checkbox.style.marginRight = '10px';
+                checkbox.addEventListener('click', (e) => { e.stopPropagation(); toggleStationSelection(originalIndex, true); });
+
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'station-number';
+                numberSpan.textContent = `${originalIndex + 1}.`;
+
+                const nameContainer = document.createElement('div');
+                nameContainer.className = 'station-name-editable';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = station.name;
+                nameContainer.appendChild(nameSpan);
+
+                nameContainer.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.value = station.name;
+                    nameInput.className = 'station-name-input';
+                    nameContainer.innerHTML = '';
+                    nameContainer.appendChild(nameInput);
+                    nameInput.focus();
+                    const handleNameChange = () => {
+                        const newName = nameInput.value.trim();
+                        if (newName) {
+                            station.name = newName;
+                            saveCustomToLocalStorage();
+                            displayCustomStations();
+                            displayStations();
+                        }
+                    };
+                    nameInput.addEventListener('blur', handleNameChange);
+                    nameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleNameChange(); });
+                });
+
+                const urlSpan = document.createElement('span');
+                urlSpan.className = 'station-url';
+                urlSpan.textContent = station.url;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '✕';
+                removeBtn.title = 'Удалить из плейлиста';
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    customStations.splice(originalIndex, 1);
+                    selectedCustomStations.delete(originalIndex);
+                    saveCustomToLocalStorage();
+                    displayCustomStations();
+                    displayStations();
+                });
+
+                stationElement.appendChild(checkbox);
+                stationElement.appendChild(numberSpan);
+                stationElement.appendChild(nameContainer);
+                stationElement.appendChild(urlSpan);
+                stationElement.appendChild(removeBtn);
+
+                stationElement.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                        if (e.ctrlKey || e.metaKey) toggleStationSelection(originalIndex, true);
+                        else if (e.shiftKey) selectStationRange(originalIndex, true);
+                        else playCustomStation(originalIndex);
+                    }
+                });
+
+                customStationList.appendChild(stationElement);
+            });
+        }
+
+        // ====== Управление выделением ======
+        function toggleStationSelection(index, isCustom) {
+            const selectedSet = isCustom ? selectedCustomStations : selectedStations;
+            if (selectedSet.has(index)) selectedSet.delete(index);
+            else selectedSet.add(index);
+            if (isCustom) displayCustomStations();
+            else displayStations();
+        }
+        function selectStationRange(index, isCustom) {
+            const selectedSet = isCustom ? selectedCustomStations : selectedStations;
+            const list = isCustom ? customStations : stations;
+            if (selectedSet.size === 0) { selectedSet.add(index); }
+            else {
+                const selectedIndices = Array.from(selectedSet);
+                const minIndex = Math.min(...selectedIndices);
+                const maxIndex = Math.max(...selectedIndices);
+                const startIndex = Math.min(minIndex, index);
+                const endIndex = Math.max(maxIndex, index);
+                for (let i = startIndex; i <= endIndex; i++) { selectedSet.add(i); }
+            }
+            if (isCustom) displayCustomStations();
+            else displayStations();
+        }
+        function selectAllStations(isCustom) {
+            const selectedSet = isCustom ? selectedCustomStations : selectedStations;
+            const list = isCustom ? customStations : stations;
+            const filteredList = isCustom ? customStations.filter(station => !customSearchQuery || station.name.toLowerCase().includes(customSearchQuery) || station.url.toLowerCase().includes(customSearchQuery)) : stations.filter(station => !currentSearchQuery || station.name.toLowerCase().includes(currentSearchQuery) || station.url.toLowerCase().includes(currentSearchQuery));
+            const allCurrentlySelected = filteredList.every(station => selectedSet.has(isCustom ? customStations.indexOf(station) : stations.indexOf(station)));
+            if (allCurrentlySelected) { filteredList.forEach(station => selectedSet.delete(isCustom ? customStations.indexOf(station) : stations.indexOf(station))); }
+            else { filteredList.forEach(station => selectedSet.add(isCustom ? customStations.indexOf(station) : stations.indexOf(station))); }
+            if (isCustom) displayCustomStations();
+            else displayStations();
+        }
+
+        // ====== Воспроизведение ======
+        function playStation(index) {
+            if (index < 0 || index >= stations.length) return;
+            currentStationIndex = index;
+            const station = stations[index];
+            audio.src = station.url;
+            audio.load();
+            audio.play().catch(error => { console.error('Ошибка воспроизведения:', error); document.getElementById('now-playing').textContent = 'Ошибка воспроизведения: ' + error.message; });
+            document.getElementById('now-playing').textContent = `Сейчас играет: ${station.name}`;
+            document.querySelectorAll('#station-list .station-item').forEach(item => item.classList.remove('active'));
+            const activeItem = document.querySelector(`#station-list .station-item[data-index="${index}"]`);
+            if (activeItem) activeItem.classList.add('active');
+            selectedStations = new Set([index]);
+            displayStations();
+        }
+        function playCustomStation(index) {
+            if (index < 0 || index >= customStations.length) return;
+            customStationIndex = index;
+            const station = customStations[index];
+            customAudio.src = station.url;
+            customAudio.load();
+            customAudio.play().catch(error => { console.error('Ошибка воспроизведения:', error); document.getElementById('custom-now-playing').textContent = 'Ошибка воспроизведения: ' + error.message; });
+            document.getElementById('custom-now-playing').textContent = `Сейчас играет: ${station.name}`;
+            document.querySelectorAll('#custom-station-list .station-item').forEach(item => item.classList.remove('active'));
+            const activeItem = document.querySelector(`#custom-station-list .station-item[data-index="${index}"]`);
+            if (activeItem) activeItem.classList.add('active');
+            selectedCustomStations = new Set([index]);
+            displayCustomStations();
+        }
+        function playNextStation(isCustom = false) {
+            if (isCustom) {
+                if (customStations.length === 0) return;
+                let nextIndex = (customStationIndex + 1) % customStations.length;
+                playCustomStation(nextIndex);
+            } else {
+                if (stations.length === 0) return;
+                let nextIndex = (currentStationIndex + 1) % stations.length;
+                playStation(nextIndex);
+            }
+        }
+        function playPrevStation(isCustom = false) {
+            if (isCustom) {
+                if (customStations.length === 0) return;
+                let prevIndex = (customStationIndex - 1 + customStations.length) % customStations.length;
+                playCustomStation(prevIndex);
+            } else {
+                if (stations.length === 0) return;
+                let prevIndex = (currentStationIndex - 1 + stations.length) % stations.length;
+                playStation(prevIndex);
+            }
+        }
+        function stopPlayback(isCustom = false) {
+            if (isCustom) {
+                customAudio.pause();
+                customAudio.src = '';
+                document.getElementById('custom-now-playing').textContent = 'Воспроизведение остановлено';
+                document.querySelectorAll('#custom-station-list .station-item').forEach(item => item.classList.remove('active'));
+            } else {
+                audio.pause();
+                audio.src = '';
+                document.getElementById('now-playing').textContent = 'Воспроизведение остановлено';
+                document.querySelectorAll('#station-list .station-item').forEach(item => item.classList.remove('active'));
+            }
+        }
+
+        // ====== Сохранение плейлиста ======
+        function saveCustomPlaylist() {
+            if (customStations.length === 0) { alert('Ваш плейлист пуст!'); return; }
+            const csvContent = customStations
+                .map(station => `${(station.name || '').replace(/[\t\r\n]+/g, ' ').trim()}\t${(station.url || '').trim()}\t0`)
+                .join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', objectUrl);
+            link.setAttribute('download', 'playlist.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl);
+        }
+
+        // ====== Удаление выбранных станций ======
+        function removeSelectedStations() {
+            if (selectedCustomStations.size === 0) { alert('Выберите станции для удаления!'); return; }
+            if (!confirm(`Удалить ${selectedCustomStations.size} станций из плейлиста?`)) return;
+            const indicesToRemove = Array.from(selectedCustomStations).sort((a, b) => b - a);
+            indicesToRemove.forEach(index => customStations.splice(index, 1));
+            selectedCustomStations = new Set();
+            saveCustomToLocalStorage();
+            displayCustomStations();
+            displayStations();
+        }
+
+        // ====== Инициализация ======
+        function init() {
+            loadStationsFromLocalStorage();
+            loadCustomFromLocalStorage();
+            displayStations();
+            displayCustomStations();
+            document.getElementById('volume-control').addEventListener('input', (e) => { audio.volume = e.target.value; });
+            document.getElementById('custom-volume-control').addEventListener('input', (e) => { customAudio.volume = e.target.value; });
+            document.getElementById('file-input').addEventListener('change', (e) => { if (e.target.files[0]) loadPlaylistFromFile(e.target.files[0]); });
+            document.getElementById('search-input').addEventListener('input', (e) => searchStations(e.target.value, false));
+            document.getElementById('custom-search-input').addEventListener('input', (e) => searchStations(e.target.value, true));
+            document.getElementById('play-btn').addEventListener('click', () => { if (currentStationIndex !== -1) playStation(currentStationIndex); else if (stations.length > 0) playStation(0); });
+            document.getElementById('custom-play-btn').addEventListener('click', () => { if (customStationIndex !== -1) playCustomStation(customStationIndex); else if (customStations.length > 0) playCustomStation(0); });
+            document.getElementById('stop-btn').addEventListener('click', () => stopPlayback(false));
+            document.getElementById('custom-stop-btn').addEventListener('click', () => stopPlayback(true));
+            document.getElementById('next-btn').addEventListener('click', () => playNextStation(false));
+            document.getElementById('custom-next-btn').addEventListener('click', () => playNextStation(true));
+            document.getElementById('prev-btn').addEventListener('click', () => playPrevStation(false));
+            document.getElementById('custom-prev-btn').addEventListener('click', () => playPrevStation(true));
+            document.getElementById('save-btn').addEventListener('click', saveCustomPlaylist);
+            document.getElementById('remove-selected-btn').addEventListener('click', removeSelectedStations);
+            document.getElementById('add-selected-btn').addEventListener('click', addSelectedStations);
+            document.getElementById('select-all-main').addEventListener('change', () => selectAllStations(false));
+            document.getElementById('select-all-custom').addEventListener('change', () => selectAllStations(true));
+            document.getElementById('sort-name').addEventListener('click', () => sortStations('name', false));
+            document.getElementById('sort-url').addEventListener('click', () => sortStations('url', false));
+            document.getElementById('custom-sort-name').addEventListener('click', () => sortStations('name', true));
+            document.getElementById('custom-sort-url').addEventListener('click', () => sortStations('url', true));
+            document.getElementById('custom-sort-up').addEventListener('click', moveSelectedStationsUp);
+            document.getElementById('custom-sort-down').addEventListener('click', moveSelectedStationsDown);
+
+            audio.addEventListener('ended', () => playNextStation(false));
+            customAudio.addEventListener('ended', () => playNextStation(true));
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
