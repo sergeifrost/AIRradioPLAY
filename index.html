@@ -1,975 +1,982 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radio Player</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: url('fon.jpg') no-repeat center center fixed;
-            background-color: #808080;
-            background-size: cover;
-            color: white;
-            min-height: 100vh;
-            height: 100vh;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
+<meta charset="UTF-8">
+<title>Radio AIR — Playlist Merger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:          #15161A;
+    --panel:       #1D1F24;
+    --panel-2:     #232529;
+    --hair:        #34363D;
+    --amber:       #E8A33D;
+    --amber-dim:   #6b5328;
+    --amber-glow:  rgba(232,163,61,0.45);
+    --teal:        #4FB8A6;
+    --red:         #D1495B;
+    --text:        #ECE8DD;
+    --muted:       #8B8D96;
+    --row-playing: #1e2a28;
+    --player-bg:   #101114;
+  }
+  body.theme-light{
+    --bg:          #EDEFF1;
+    --panel:       #FFFFFF;
+    --panel-2:     #F4F5F7;
+    --hair:        #D7D9DC;
+    --amber:       #B8721E;
+    --amber-dim:   #E7CBA1;
+    --amber-glow:  rgba(184,114,30,0.20);
+    --teal:        #2E8C7C;
+    --red:         #C23A56;
+    --text:        #1C1E22;
+    --muted:       #6B6F76;
+    --row-playing: #E4F2EF;
+    --player-bg:   #FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    padding:28px 20px 90px;
+    transition:background .2s, color .2s;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
 
-        .player-container {
-            width: 100%;
-            max-width: 800px;
-            height: 90vh;
-            background-color: rgba(0, 0, 0, 0.7);
-            border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    border-bottom:2px solid var(--hair);
+    padding-bottom:16px;
+    margin-bottom:24px;
+  }
+  .top-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .lang-switch{display:flex;gap:6px;}
+  .theme-btn{
+    width:28px;height:28px;
+    border-radius:50%;
+    background:var(--panel-2);
+    border:1px solid var(--hair);
+    color:var(--text);
+    font-size:13px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:border-color .15s, transform .15s;
+  }
+  .theme-btn:hover{border-color:var(--amber-dim);transform:rotate(12deg);}
+  .lang-btn{
+    background:var(--panel-2);
+    border:1px solid var(--hair);
+    color:var(--muted);
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:0.06em;
+    padding:5px 11px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .lang-btn:hover{color:var(--text);}
+  .lang-btn.active{
+    color:var(--amber);
+    border-color:var(--amber-dim);
+    box-shadow:0 0 8px var(--amber-glow);
+  }
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-size:28px;
+    margin:0;
+    color:var(--text);
+  }
+  h1 span{color:var(--amber);}
+  .subtitle{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:4px;
+  }
+  .freq{
+    font-family:'Oswald', sans-serif;
+    font-size:34px;
+    letter-spacing:0.04em;
+    color:var(--amber);
+    text-shadow:0 0 14px var(--amber-glow);
+    min-width:120px;
+    text-align:right;
+  }
+  .freq small{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    color:var(--muted);
+    text-transform:uppercase;
+    text-shadow:none;
+  }
 
-        .header {
-            padding: 15px;
-            background-color: rgba(0, 0, 0, 0.5);
-            text-align: center;
-            border-bottom: 1px solid #444;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+  .decks{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(260px,1fr));
+    gap:16px;
+    margin-bottom:18px;
+  }
+  .deck{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:14px;
+    position:relative;
+    transition:border-color .15s, box-shadow .15s;
+    display:flex;
+    flex-direction:column;
+    min-height:200px;
+  }
+  .deck.drag{
+    border-color:var(--amber);
+    box-shadow:0 0 0 1px var(--amber-dim) inset;
+  }
+  .deck.filled{border-color:var(--teal);}
+  .deck-label{
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .deck-label .led{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--hair);
+    margin-right:6px;
+    display:inline-block;
+  }
+  .deck.filled .led{
+    background:var(--teal);
+    box-shadow:0 0 6px var(--teal);
+  }
+  .deck-drop{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border:1px dashed var(--hair);
+    border-radius:6px;
+    padding:14px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .deck-drop .hint{font-size:12px;color:var(--muted);}
+  .deck-drop input{display:none;}
+  .deck-info{
+    margin-top:4px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .deck-info .fname{color:var(--text);}
+  .deck-count{color:var(--teal);font-weight:600;}
+  .deck-remove{
+    background:none;border:none;color:var(--muted);
+    font-size:11px;cursor:pointer;text-decoration:underline;
+    padding:0;margin-top:8px;align-self:flex-start;
+  }
+  .deck-remove:hover{color:var(--red);}
+  .deck-preview{
+    margin-top:8px;
+    max-height:80px;
+    overflow:auto;
+    font-size:11px;
+    color:var(--muted);
+    line-height:1.5;
+    border-top:1px solid var(--hair);
+    padding-top:6px;
+    width:100%;
+  }
 
-        .search-container {
-            flex: 1;
-            min-width: 200px;
-            max-width: 300px;
-            position: relative;
-            margin: 0 15px;
-        }
+  .add-deck{
+    background:var(--panel-2);
+    border:1px solid var(--hair);
+    border-radius:8px;
+    color:var(--muted);
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-size:12px;
+    cursor:pointer;
+    min-height:200px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .add-deck:hover{color:var(--amber);border-color:var(--amber-dim);}
 
-        .search-input {
-            width: 100%;
-            padding: 8px 30px 8px 10px;
-            border-radius: 20px;
-            border: none;
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-            transition: all 0.3s;
-        }
+  .console{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:18px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:22px;
+  }
+  .opt-group{display:flex;flex-direction:column;gap:4px;}
+  .opt-label{
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  select, .filename-input{
+    background:var(--bg);
+    border:1px solid var(--hair);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:7px 10px;
+    border-radius:5px;
+  }
+  .toggle{
+    display:flex;align-items:center;gap:8px;cursor:pointer;
+    font-size:13px;color:var(--text);
+  }
+  .toggle input{accent-color:var(--amber);width:15px;height:15px;}
 
-        .search-input:focus {
-            outline: none;
-            box-shadow: 0 0 5px #1e90ff;
-        }
+  .merge-btn{
+    background:var(--amber);
+    color:#1a1300;
+    border:none;
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-weight:700;
+    font-size:15px;
+    padding:14px 26px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:transform .08s, box-shadow .15s;
+    box-shadow:0 0 0 rgba(232,163,61,0);
+  }
+  .merge-btn:hover{box-shadow:0 0 18px var(--amber-glow);}
+  .merge-btn:active{transform:scale(0.97);}
+  .merge-btn:disabled{
+    background:var(--hair);color:var(--muted);cursor:not-allowed;box-shadow:none;
+  }
 
-        .search-icon {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: white;
-            opacity: 0.7;
-        }
+  .result{
+    background:var(--panel);
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:18px;
+    display:none;
+  }
+  .result.show{display:block;}
+  .result-head{
+    display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;
+    margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--hair);
+  }
+  .result-stats{display:flex;gap:24px;flex-wrap:wrap;}
+  .stat .num{
+    font-family:'Oswald',sans-serif;
+    font-size:26px;
+    color:var(--text);
+  }
+  .stat.dup .num{color:var(--red);}
+  .stat.total .num{color:var(--teal);}
+  .stat .lbl{
+    font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;
+  }
+  .hint-small{font-size:11px;color:var(--muted);max-width:300px;text-align:right;}
 
-        .station-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
+  .station-list{
+    border:1px solid var(--hair);
+    border-radius:6px;
+    max-height:420px;
+    overflow:auto;
+  }
+  .station-row{
+    display:grid;
+    grid-template-columns:32px 28px 24px 1fr 36px 36px 90px;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    border-bottom:1px solid #26282d;
+    background:var(--panel);
+    transition:background .12s;
+  }
+  .station-row:last-child{border-bottom:none;}
+  .station-row:hover{background:#202227;}
+  .station-row.dragging{opacity:0.35;}
+  .station-row.drop-before{box-shadow:inset 0 2px 0 var(--amber);}
+  .station-row.drop-after{box-shadow:inset 0 -2px 0 var(--amber);}
+  .station-row.playing{background:var(--row-playing);}
+  .station-row.playing .s-name{color:var(--teal);}
 
-        .station-item {
-            padding: 12px 15px;
-            margin: 5px 0;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-        }
+  .s-idx{color:var(--muted);font-size:11px;text-align:right;}
+  .s-handle{
+    cursor:grab;color:var(--muted);font-size:15px;text-align:center;
+    user-select:none;
+  }
+  .s-handle:active{cursor:grabbing;}
+  .s-main{overflow:hidden;}
+  .s-name{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .s-url{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-        .station-item:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
+  .icon-btn{
+    width:30px;height:30px;border-radius:6px;border:1px solid var(--hair);
+    background:var(--panel-2);color:var(--text);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-size:13px;
+    transition:border-color .12s, color .12s;
+  }
+  .icon-btn:hover{border-color:var(--amber-dim);}
+  .icon-btn.play.is-playing{color:var(--teal);border-color:var(--teal);}
+  .icon-btn.del:hover{color:var(--red);border-color:var(--red);}
 
-        .station-item.active {
-            background-color: rgba(30, 144, 255, 0.7);
-            font-weight: bold;
-        }
+  .download-row{
+    display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap;
+  }
+  .eject-btn{
+    background:var(--teal);
+    color:#06241f;
+    border:none;
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-weight:700;
+    font-size:13px;
+    padding:10px 18px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .eject-btn:hover{filter:brightness(1.1);}
+  .empty-msg{color:var(--muted);font-size:13px;}
 
-        .station-item.selected {
-            background-color: rgba(30, 144, 255, 0.4);
-            border-left: 3px solid #1e90ff;
-        }
+  .player-bar{
+    position:fixed;left:0;right:0;bottom:0;
+    background:var(--player-bg);
+    border-top:1px solid var(--hair);
+    padding:12px 20px;
+    display:none;
+    align-items:center;
+    gap:14px;
+    z-index:50;
+    transition:background .2s;
+  }
+  .player-bar.show{display:flex;}
+  .player-led{
+    width:10px;height:10px;border-radius:50%;background:var(--teal);
+    box-shadow:0 0 8px var(--teal);
+    flex:none;
+    animation:pulse 1.4s infinite ease-in-out;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  .player-info{flex:1;min-width:0;}
+  .player-name{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .player-status{font-size:11px;color:var(--muted);}
+  .player-status.error{color:var(--red);}
+  .player-stop{
+    background:none;border:1px solid var(--hair);color:var(--text);
+    border-radius:6px;padding:8px 14px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+  }
+  .player-stop:hover{border-color:var(--red);color:var(--red);}
 
-        .station-item.in-favorites {
-            background-color: rgba(76, 175, 80, 0.3);
-            border-left: 3px solid #4CAF50;
-        }
-
-        .station-item.in-favorites:hover {
-            background-color: rgba(76, 175, 80, 0.4);
-        }
-
-        .station-url {
-            font-size: 0.8em;
-            color: #aaa;
-            margin-left: 10px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 50%;
-        }
-
-        .controls {
-            padding: 15px;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            border-top: 1px solid #444;
-        }
-
-        .control-btn {
-            background-color: #555;
-            border: none;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.3s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .control-btn:hover { background-color: #666; }
-        .control-btn:active { background-color: #777; }
-
-        .volume-container { display:flex; align-items:center; gap:10px; width:100%; max-width:200px; }
-        .volume-control { flex:1; }
-
-        .now-playing {
-            padding: 10px 15px;
-            background-color: rgba(0, 0, 0, 0.5);
-            text-align: center;
-            font-style: italic;
-            border-top: 1px solid #444;
-            min-height: 20px;
-            text-shadow: 0 0 5px #1e90ff, 0 0 10px #1e90ff;
-            position: relative;
-        }
-        .now-playing::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #1e90ff, transparent);
-            animation: neonLine 2s infinite;
-        }
-        @keyframes neonLine { 0% {opacity: 0.3;} 50% {opacity:1;} 100% {opacity:0.3;} }
-
-        .file-input { display:none; }
-        .file-input-label, .save-btn, .add-selected-btn {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-            text-align: center;
-            color: white;
-            border: none;
-            min-width: 180px;
-        }
-        .file-input-label:hover, .save-btn:hover, .add-selected-btn:hover { background-color: #45a049; }
-        .save-btn { background-color: #2196F3; }
-        .save-btn:hover { background-color: #0b7dda; }
-        .add-selected-btn { background-color: #FF9800; }
-        .add-selected-btn:hover { background-color: #F57C00; }
-
-        .remove-btn { padding:5px 10px; background:#f44336; border:none; border-radius:3px; color:white; cursor:pointer; transition:all .3s; font-size:12px; margin-left:10px; }
-        .remove-btn:hover { background:#d32f2f; }
-        .add-btn { padding:5px 10px; background:#2196F3; border:none; border-radius:3px; color:white; cursor:pointer; transition:all .3s; font-size:12px; margin-left:10px; }
-        .add-btn:hover { background:#0b7dda; }
-        .copy-btn { padding:5px 10px; background:#673AB7; border:none; border-radius:3px; color:white; cursor:pointer; transition:all .3s; font-size:12px; margin-left:10px; white-space:nowrap; }
-        .copy-btn:hover { background:#5E35B1; }
-        .copy-btn.copied { background:#4CAF50; }
-
-        .station-number { flex:0 0 30px; text-align:right; margin-right:10px; color:#aaa; font-weight:bold; }
-
-        .station-item.working { background-color: rgba(30, 144, 255, 0.1); }
-        .station-item.not-working { background-color: rgba(128, 128, 128, 0.1); color:#888; }
-        .station-item.not-working .station-url { color:#666; }
-        .checking-status { position:relative; padding-left:20px; }
-        .checking-status::before { content:"🔄"; position:absolute; left:5px; animation:spin 1s linear infinite; }
-        @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
-
-        .station-name-editable { cursor:pointer; flex:1; margin-right:10px; position:relative; }
-        .station-name-editable:hover::after {
-            content: "Двойной клик для редактирования";
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.85);
-            color: #fff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 100;
-            pointer-events: none;
-            animation: fadeIn .3s ease-out;
-        }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        .station-name-editable:hover { text-decoration: underline dotted #1e90ff; }
-        .station-name-input { width:100%; background:rgba(255,255,255,0.2); border:1px solid #1e90ff; color:white; padding:2px 5px; border-radius:3px; font-family:inherit; font-size:inherit; }
-        .station-name-input:focus { outline:none; border-color:#4CAF50; box-shadow:0 0 5px rgba(76,175,80,0.5); }
-
-        .sortable-header { cursor:pointer; position:relative; padding-right:15px; }
-        .sortable-header:hover { text-decoration: underline; }
-        .sortable-header::after { content:"↕"; position:absolute; right:0; opacity:.5; font-size:.8em; }
-        .sortable-header.asc::after { content:"↑"; opacity:1; }
-        .sortable-header.desc::after { content:"↓"; opacity:1; }
-
-        .list-header { display:flex; padding:8px 15px; background:rgba(0,0,0,0.3); border-bottom:1px solid #444; font-weight:bold; user-select:none; }
-        .list-header-item { flex:1; display:flex; align-items:center; }
-        .list-header-actions { flex:0 0 auto; display:flex; justify-content:flex-end; }
-        .header-remove-btn { padding:3px 8px; background:#f44336; border:none; border-radius:3px; color:white; cursor:pointer; transition:.3s; font-size:12px; }
-        .header-remove-btn:hover { background:#d32f2f; }
-        .select-all-checkbox { margin-right:10px; cursor:pointer; }
-
-        .station-list::-webkit-scrollbar { width:8px; }
-        .station-list::-webkit-scrollbar-track { background:rgba(255,255,255,0.1); border-radius:4px; }
-        .station-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.3); border-radius:4px; }
-        .station-list::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.5); }
-
-        .sort-buttons {
-            display: flex;
-            gap: 5px;
-            margin-left: 10px;
-        }
-        .sort-btn {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid #555;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 3px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        .sort-btn:hover {
-            background: rgba(255,255,255,0.2);
-            border-color: #1e90ff;
-        }
-
-        @media (max-width: 1200px) {
-            body { flex-direction: column; padding: 10px; height: auto; min-height: 100vh; }
-            .player-container { width:100%; height:auto; min-height:300px; margin-bottom:20px; }
-            #main-player, #custom-player { order:0; }
-            .controls { gap:10px; padding:10px; }
-            .volume-container { width:100%; margin-top:10px; }
-            .control-btn { width:50px; height:50px; font-size:20px; }
-            .search-container { width:100%; max-width:none; margin:10px 0; }
-            .station-url { max-width:40%; }
-            .station-list { max-height:30vh; overflow-y:auto; }
-        }
-    </style>
+  footer{
+    text-align:center;color:var(--muted);font-size:11px;margin-top:30px;
+  }
+</style>
 </head>
 <body>
-    <!-- Основной плеер -->
-    <div class="player-container" id="main-player">
-        <div class="header">
-            <h1>Radio Player</h1>
-            <div class="search-container">
-                <input type="text" class="search-input" id="search-input" placeholder="Поиск станций...">
-                <span class="search-icon">🔍</span>
-            </div>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="top-controls">
+        <div class="lang-switch" id="langSwitch">
+          <button class="lang-btn" data-lang="ru">RU</button>
+          <button class="lang-btn" data-lang="uk">UA</button>
+          <button class="lang-btn" data-lang="en">EN</button>
         </div>
-        <div class="now-playing" id="now-playing">Загрузите плейлист</div>
-        <div class="list-header">
-            <div class="list-header-item">
-                <input type="checkbox" class="select-all-checkbox" id="select-all-main">
-                <span class="sortable-header" id="sort-name">Название</span>
-            </div>
-            <div class="list-header-item">
-                <span class="sortable-header" id="sort-url">Ссылка</span>
-            </div>
-            <button class="add-selected-btn" id="add-selected-btn">Добавить выделенное →</button>
-        </div>
-        <div class="station-list" id="station-list"></div>
-        <div class="controls">
-            <button class="control-btn" id="prev-btn" title="Предыдущая">⏮</button>
-            <button class="control-btn" id="play-btn" title="Воспроизвести">▶</button>
-            <button class="control-btn" id="stop-btn" title="Стоп">⏹</button>
-            <button class="control-btn" id="next-btn" title="Следующая">⏭</button>
-            <div class="volume-container">
-                <span>🔈</span>
-                <input type="range" class="volume-control" id="volume-control" min="0" max="1" step="0.01" value="0.5">
-                <span>🔊</span>
-            </div>
-            <input type="file" id="file-input" class="file-input" accept=".m3u,.pls,.txt,.json,.csv">
-            <label for="file-input" class="file-input-label">Загрузить плейлист</label>
-            
-        </div>
+        <button class="theme-btn" id="themeToggle">☀</button>
+      </div>
+      <h1>AIR <span>RADIO</span> · <span id="titleSuffix"></span></h1>
+      <div class="subtitle" id="subtitleText"></div>
+    </div>
+    <div class="freq" id="freqDisplay">000<small id="freqSmallText"></small></div>
+  </header>
+
+  <div class="decks" id="decks"></div>
+
+  <div class="console">
+    <div class="opt-group">
+      <div class="opt-label" id="dedupeLabelText"></div>
+      <label class="toggle"><input type="checkbox" id="dedupe" checked> <span id="dedupeCheckboxText"></span></label>
+    </div>
+    <div class="opt-group">
+      <div class="opt-label" id="orderLabelText"></div>
+      <select id="sortMode">
+        <option value="asis" id="orderAsisOpt"></option>
+        <option value="name" id="orderNameOpt"></option>
+      </select>
+    </div>
+    <div class="opt-group">
+      <div class="opt-label" id="filenameLabelText"></div>
+      <input class="filename-input" id="outName" value="merged_playlist.csv">
+    </div>
+    <button class="merge-btn" id="mergeBtn" disabled></button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-head">
+      <div class="result-stats">
+        <div class="stat total"><div class="num" id="statTotal">0</div><div class="lbl" id="statTotalLbl"></div></div>
+        <div class="stat"><div class="num" id="statSources">0</div><div class="lbl" id="statSourcesLbl"></div></div>
+        <div class="stat dup"><div class="num" id="statDup">0</div><div class="lbl" id="statDupLbl"></div></div>
+      </div>
+      <div class="hint-small" id="hintSmallText"></div>
     </div>
 
-    <!-- Плеер для пользовательского плейлиста -->
-    <div class="player-container" id="custom-player">
-        <div class="header">
-            <h1>my Playlist</h1>
-            <div class="search-container">
-                <input type="text" class="search-input" id="custom-search-input" placeholder="Поиск станций...">
-                <span class="search-icon">🔍</span>
-            </div>
-        </div>
-        <div class="now-playing" id="custom-now-playing">Добавьте станции из основного плеера</div>
-        <div class="list-header">
-            <div class="list-header-item">
-                <input type="checkbox" class="select-all-checkbox" id="select-all-custom">
-                <span class="sortable-header" id="custom-sort-name">Название</span>
-                <div class="sort-buttons">
-                    <button class="sort-btn" id="custom-sort-up" title="Переместить вверх">↑</button>
-                    <button class="sort-btn" id="custom-sort-down" title="Переместить вниз">↓</button>
-                </div>
-            </div>
-            <div class="list-header-item">
-                <span class="sortable-header" id="custom-sort-url">Ссылка</span>
-            </div>
-            <div class="list-header-item list-header-actions">
-                <button class="header-remove-btn" id="remove-selected-btn" title="Удалить выбранные">✕</button>
-            </div>
-        </div>
-        <div class="station-list" id="custom-station-list"></div>
-        <div class="controls">
-            <button class="control-btn" id="custom-prev-btn" title="Предыдущая">⏮</button>
-            <button class="control-btn" id="custom-play-btn" title="Воспроизвести">▶</button>
-            <button class="control-btn" id="custom-stop-btn" title="Стоп">⏹</button>
-            <button class="control-btn" id="custom-next-btn" title="Следующая">⏭</button>
-            <div class="volume-container">
-                <span>🔈</span>
-                <input type="range" class="volume-control" id="custom-volume-control" min="0" max="1" step="0.01" value="0.5">
-                <span>🔊</span>
-            </div>
-            <button class="save-btn" id="save-btn">Экспорт для AIR радио</button>
-        </div>
+    <div class="station-list" id="stationList"></div>
+
+    <div class="download-row">
+      <button class="eject-btn" id="deleteSelectedBtn" style="background:#D1495B;">Удалить выбранные</button>
+      <button class="eject-btn" id="downloadBtn"></button>
+      <span class="empty-msg" id="downloadHintText"></span>
     </div>
+  </div>
 
-    <script>
-        // ====== Аудио и состояния ======
-        const audio = new Audio();
-        const customAudio = new Audio();
-        let currentStationIndex = -1;
-        let customStationIndex = -1;
-        let stations = [];
-        let customStations = [];
-        let currentSearchQuery = '';
-        let customSearchQuery = '';
-        let selectedStations = new Set();
-        let selectedCustomStations = new Set();
-        let sortState = { field: null, direction: null };
-        let customSortState = { field: null, direction: null };
+</div>
 
-        // ====== Ключи localStorage ======
-        const STORAGE_KEYS = {
-            main: 'radioPlayer_mainStations',
-            custom: 'radioPlayer_customStations'
-        };
+<div class="player-bar" id="playerBar">
+  <div class="player-led"></div>
+  <div class="player-info">
+    <div class="player-name" id="playerName">—</div>
+    <div class="player-status" id="playerStatus"></div>
+  </div>
+  <button class="player-stop" id="playerStop"></button>
+</div>
 
-        function saveStationsToLocalStorage(){
-            try { localStorage.setItem(STORAGE_KEYS.main, JSON.stringify(stations)); } catch(e){ console.error('Ошибка сохранения основного плейлиста в localStorage', e); }
-        }
-        function loadStationsFromLocalStorage(){
-            try { const raw = localStorage.getItem(STORAGE_KEYS.main); if (raw){ const data = JSON.parse(raw); if (Array.isArray(data)) stations = data; } } catch(e){ console.error('Ошибка загрузки основного плейлиста из localStorage', e); }
-        }
-        function saveCustomToLocalStorage(){
-            try { localStorage.setItem(STORAGE_KEYS.custom, JSON.stringify(customStations)); } catch(e){ console.error('Ошибка сохранения пользовательского плейлиста в localStorage', e); }
-        }
-        function loadCustomFromLocalStorage(){
-            try { const raw = localStorage.getItem(STORAGE_KEYS.custom); if (raw){ const data = JSON.parse(raw); if (Array.isArray(data)) customStations = data; } } catch(e){ console.error('Ошибка загрузки пользовательского плейлиста из localStorage', e); }
-        }
+<footer id="footerText"></footer>
 
-        // ====== Парсеры плейлистов ======
-        function parseM3U(content) {
-            const lines = content.split('\n');
-            const result = [];
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (line.startsWith('#EXTINF:')) {
-                    const name = line.split(',')[1] || `Станция ${result.length + 1}`;
-                    const url = lines[i+1]?.trim();
-                    if (url && !url.startsWith('#')) { result.push({ name, url }); i++; }
-                } else if (line && !line.startsWith('#') && line.startsWith('http')) {
-                    result.push({ name: `Станция ${result.length + 1}`, url: line });
-                }
-            }
-            return result;
-        }
-        function parsePLS(content) {
-            const lines = content.split('\n');
-            const result = []; let fileEntries = []; let titleEntries = [];
-            for (const line of lines) {
-                if (line.startsWith('File')) { const m = line.match(/File(\d+)=(.+)/); if (m) fileEntries[parseInt(m[1])] = m[2]; }
-                else if (line.startsWith('Title')) { const m = line.match(/Title(\d+)=(.+)/); if (m) titleEntries[parseInt(m[1])] = m[2]; }
-            }
-            const count = Math.min(fileEntries.length, titleEntries.length);
-            for (let i = 1; i <= count; i++) { if (fileEntries[i] && titleEntries[i]) result.push({ name: titleEntries[i], url: fileEntries[i] }); }
-            return result;
-        }
-        function parseCSV(content) {
-            const lines = content.split(/\r?\n/);
-            const result = [];
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('#')) continue;
-                let fields;
-                if (trimmed.includes('\",\"')) { fields = trimmed.split(/\",\"/).map(f => f.replace(/^\"|\"$/g, '')); }
-                else if (trimmed.includes(';')) { fields = trimmed.split(';').map(f => f.trim()); }
-                else if (trimmed.includes('\t')) { fields = trimmed.split('\t').map(f => f.trim()); }
-                else { fields = trimmed.split(',').map(f => f.trim()); }
-                if (fields.length >= 2) {
-                    const name = fields[0]; const url = fields[1];
-                    if (url && (url.startsWith('http://') || url.startsWith('https://'))) { result.push({ name, url }); }
-                }
-            }
-            return result;
-        }
-        function parseTextPlaylist(content) {
-            const lines = content.split('\n');
-            const result = [];
-            for (const line of lines) {
-                const trimmed = line.trim(); if (!trimmed) continue;
-                const separator = trimmed.includes(',') ? ',' : trimmed.includes(';') ? ';' : trimmed.includes('\t') ? '\t' : null;
-                if (separator) {
-                    const parts = trimmed.split(separator);
-                    if (parts.length >= 2) { result.push({ name: parts[0].trim(), url: parts[1].trim() }); }
-                } else if (trimmed.startsWith('http')) { result.push({ name: `Станция ${result.length + 1}`, url: trimmed }); }
-            }
-            return result;
-        }
+<script>
+/* ---------- Переводы / Переклади / Translations ---------- */
 
-        // ====== Загрузка из файла ======
-        function loadPlaylistFromFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                let parsedStations = [];
-                if (file.name.endsWith('.m3u')) parsedStations = parseM3U(content);
-                else if (file.name.endsWith('.pls')) parsedStations = parsePLS(content);
-                else if (file.name.endsWith('.csv')) parsedStations = parseCSV(content);
-                else if (file.name.endsWith('.json')) { try { parsedStations = JSON.parse(content); } catch (error) { console.error('Ошибка парсинга JSON:', error); } }
-                else parsedStations = parseTextPlaylist(content);
-                if (parsedStations.length > 0) {
-                    stations = parsedStations;
-                    saveStationsToLocalStorage();
-                    displayStations();
-                    document.getElementById('now-playing').textContent = `Загружено ${stations.length} станций`;
-                    selectedStations = new Set();
-                } else {
-                    document.getElementById('now-playing').textContent = 'Не удалось загрузить станции из файла';
-                }
-            };
-            reader.readAsText(file);
-        }
+const translations = {
+  ru: {
+    titleSuffix: "ОБЪЕДИНЕНИЕ",
+    subtitle: "Слияние списков станций (формат: название · URL · флаг, через табуляцию)",
+    freqLabel: "станций загружено",
+    deckWord: "ДЕКА",
+    deckStationsWord: "станций",
+    deckHint: "Перетащи файл сюда<br>или нажми, чтобы выбрать",
+    deckRemove: "убрать",
+    addDeck: "+ Добавить деку",
+    dedupeLabel: "Дубликаты",
+    dedupeCheckbox: "Удалять по URL",
+    orderLabel: "Порядок при объединении",
+    orderAsis: "Как загружено",
+    orderName: "По названию (А→Я)",
+    filenameLabel: "Имя файла",
+    mergeBtn: "Объединить ▶",
+    statTotal: "в результате",
+    statSources: "источников",
+    statDup: "дублей убрано",
+    hintSmall: "Перетаскивай станции за «⠿», чтобы менять порядок. ▶ — прослушать, ✕ — удалить.",
+    emptyList: "Список пуст",
+    titleDrag: "Перетащи, чтобы изменить порядок",
+    titleListen: "Прослушать",
+    titleDelete: "Удалить",
+    downloadBtn: "⏏ Скачать CSV",
+    downloadHint: "Тот же формат, что и в исходных файлах — можно сразу импортировать обратно в Radio AIR.",
+    playerConnecting: "Подключение…",
+    playerPlaying: "Воспроизведение",
+    playerError: "Не удалось воспроизвести (формат потока не поддерживается браузером)",
+    playerStop: "■ Стоп",
+    footer: "Всё работает прямо в браузере — файлы никуда не отправляются.",
+    themeToggleTitle: "Переключить тему"
+  },
+  uk: {
+    titleSuffix: "ОБ'ЄДНАННЯ",
+    subtitle: "Об'єднання списків станцій (формат: назва · URL · ознака, через табуляцію)",
+    freqLabel: "станцій завантажено",
+    deckWord: "ДЕКА",
+    deckStationsWord: "станцій",
+    deckHint: "Перетягни файл сюди<br>або натисни, щоб вибрати",
+    deckRemove: "видалити",
+    addDeck: "+ Додати деку",
+    dedupeLabel: "Дублікати",
+    dedupeCheckbox: "Видаляти за URL",
+    orderLabel: "Порядок під час об'єднання",
+    orderAsis: "Як завантажено",
+    orderName: "За назвою (А→Я)",
+    filenameLabel: "Ім'я файлу",
+    mergeBtn: "Об'єднати ▶",
+    statTotal: "у результаті",
+    statSources: "джерел",
+    statDup: "дублів знято",
+    hintSmall: "Перетягуй станції за «⠿», щоб змінювати порядок. ▶ — прослухати, ✕ — видалити.",
+    emptyList: "Список порожній",
+    titleDrag: "Перетягни, щоб змінити порядок",
+    titleListen: "Прослухати",
+    titleDelete: "Видалити",
+    downloadBtn: "⏏ Завантажити CSV",
+    downloadHint: "Той самий формат, що й вихідні файли — можна одразу імпортувати назад у Radio AIR.",
+    playerConnecting: "Підключення…",
+    playerPlaying: "Відтворення",
+    playerError: "Не вдалося відтворити (формат потоку не підтримується браузером)",
+    playerStop: "■ Стоп",
+    footer: "Усе працює прямо в браузері — файли нікуди не надсилаються.",
+    themeToggleTitle: "Перемкнути тему"
+  },
+  en: {
+    titleSuffix: "MERGER",
+    subtitle: "Merge station playlists (format: name · URL · flag, tab-separated)",
+    freqLabel: "stations loaded",
+    deckWord: "DECK",
+    deckStationsWord: "stations",
+    deckHint: "Drop a file here<br>or click to choose",
+    deckRemove: "remove",
+    addDeck: "+ Add deck",
+    dedupeLabel: "Duplicates",
+    dedupeCheckbox: "Remove by URL",
+    orderLabel: "Order when merging",
+    orderAsis: "As loaded",
+    orderName: "By name (A→Z)",
+    filenameLabel: "File name",
+    mergeBtn: "Merge ▶",
+    statTotal: "total",
+    statSources: "sources",
+    statDup: "duplicates removed",
+    hintSmall: "Drag stations by «⠿» to reorder. ▶ — listen, ✕ — delete.",
+    emptyList: "List is empty",
+    titleDrag: "Drag to reorder",
+    titleListen: "Listen",
+    titleDelete: "Delete",
+    downloadBtn: "⏏ Download CSV",
+    downloadHint: "Same format as the source files — ready to import straight back into Radio AIR.",
+    playerConnecting: "Connecting…",
+    playerPlaying: "Playing",
+    playerError: "Couldn't play this stream (format not supported by the browser)",
+    playerStop: "■ Stop",
+    footer: "Everything runs in AIRur browser — files are never uploaded.",
+    themeToggleTitle: "Toggle theme"
+  }
+};
 
-        // ====== Утилиты ======
-        function isInCustomPlaylist(url) { return customStations.some(station => station.url === url); }
-        function searchStations(query, isCustom = false) {
-            if (isCustom) { customSearchQuery = query.toLowerCase(); displayCustomStations(); }
-            else { currentSearchQuery = query.toLowerCase(); displayStations(); }
-        }
-        function sortStations(field, isCustom = false) {
-            const list = isCustom ? customStations : stations;
-            const currentSortState = isCustom ? customSortState : sortState;
-            if (currentSortState.field === field) currentSortState.direction = currentSortState.direction === 'asc' ? 'desc' : 'asc';
-            else { currentSortState.field = field; currentSortState.direction = 'asc'; }
-            list.sort((a, b) => {
-                const valA = (a[field]||'').toLowerCase();
-                const valB = (b[field]||'').toLowerCase();
-                if (valA < valB) return currentSortState.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return currentSortState.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-            if (isCustom) { displayCustomStations(); saveCustomToLocalStorage(); }
-            else { displayStations(); saveStationsToLocalStorage(); }
-            updateSortHeaders(field, currentSortState.direction, isCustom);
-        }
-        function updateSortHeaders(field, direction, isCustom) {
-            const nameHeader = isCustom ? document.getElementById('custom-sort-name') : document.getElementById('sort-name');
-            const urlHeader = isCustom ? document.getElementById('custom-sort-url') : document.getElementById('sort-url');
-            nameHeader.classList.remove('asc', 'desc');
-            urlHeader.classList.remove('asc', 'desc');
-            if (field === 'name') nameHeader.classList.add(direction);
-            else if (field === 'url') urlHeader.classList.add(direction);
-        }
+let currentLang = 'ru';
+function t(key){ return translations[currentLang][key] || key; }
 
-        // ====== Кнопки сортировки вверх/вниз ======
-        function copyTextFallback(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.setAttribute('readonly', '');
-            textArea.style.position = 'fixed';
-            textArea.style.opacity = '0';
-            document.body.appendChild(textArea);
-            textArea.select();
-            const successful = document.execCommand('copy');
-            document.body.removeChild(textArea);
-            if (!successful) throw new Error('Copy command failed');
-        }
+function setLang(lang){
+  currentLang = translations[lang] ? lang : 'ru';
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
 
-        async function copyStationUrl(url, button) {
-            try {
-                if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(url);
-                else copyTextFallback(url);
+  document.getElementById('titleSuffix').textContent = t('titleSuffix');
+  document.getElementById('subtitleText').textContent = t('subtitle');
+  document.getElementById('dedupeLabelText').textContent = t('dedupeLabel');
+  document.getElementById('dedupeCheckboxText').textContent = t('dedupeCheckbox');
+  document.getElementById('orderLabelText').textContent = t('orderLabel');
+  document.getElementById('orderAsisOpt').textContent = t('orderAsis');
+  document.getElementById('orderNameOpt').textContent = t('orderName');
+  document.getElementById('filenameLabelText').textContent = t('filenameLabel');
+  document.getElementById('mergeBtn').textContent = t('mergeBtn');
+  document.getElementById('statTotalLbl').textContent = t('statTotal');
+  document.getElementById('statSourcesLbl').textContent = t('statSources');
+  document.getElementById('statDupLbl').textContent = t('statDup');
+  document.getElementById('hintSmallText').textContent = t('hintSmall');
+  document.getElementById('downloadBtn').textContent = t('downloadBtn');
+  document.getElementById('downloadHintText').textContent = t('downloadHint');
+  document.getElementById('playerStop').textContent = t('playerStop');
+  document.getElementById('footerText').textContent = t('footer');
+  document.getElementById('themeToggle').title = t('themeToggleTitle');
 
-                const originalText = button.textContent;
-                button.textContent = 'Скопировано';
-                button.classList.add('copied');
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.classList.remove('copied');
-                }, 1500);
-            } catch (error) {
-                console.error('Ошибка копирования ссылки:', error);
-                alert('Не удалось скопировать ссылку в буфер обмена');
-            }
-        }
+  updateFreq();
+  renderDecks();
+  if(document.getElementById('result').classList.contains('show')){
+    renderStationList();
+  }
+}
 
-        function moveSelectedStationsUp() {
-            if (selectedCustomStations.size === 0) return;
-            
-            const indices = Array.from(selectedCustomStations).sort((a, b) => a - b);
-            if (indices[0] === 0) return; // Нельзя переместить выше первой позиции
-            
-            for (const index of indices) {
-                if (index > 0) {
-                    // Меняем местами элементы
-                    [customStations[index], customStations[index - 1]] = [customStations[index - 1], customStations[index]];
-                    // Обновляем индексы в selectedCustomStations
-                    selectedCustomStations.delete(index);
-                    selectedCustomStations.add(index - 1);
-                }
-            }
-            
-            saveCustomToLocalStorage();
-            displayCustomStations();
-        }
+let currentTheme = 'dark';
+function setTheme(theme){
+  currentTheme = theme === 'light' ? 'light' : 'dark';
+  document.body.classList.toggle('theme-light', currentTheme === 'light');
+  document.getElementById('themeToggle').textContent = currentTheme === 'dark' ? '☀' : '☾';
+  document.getElementById('themeToggle').title = t('themeToggleTitle');
+}
+document.getElementById('themeToggle').addEventListener('click', () => {
+  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+});
 
-        function moveSelectedStationsDown() {
-            if (selectedCustomStations.size === 0) return;
-            
-            const indices = Array.from(selectedCustomStations).sort((a, b) => b - a);
-            if (indices[0] === customStations.length - 1) return; // Нельзя переместить ниже последней позиции
-            
-            for (const index of indices) {
-                if (index < customStations.length - 1) {
-                    // Меняем местами элементы
-                    [customStations[index], customStations[index + 1]] = [customStations[index + 1], customStations[index]];
-                    // Обновляем индексы в selectedCustomStations
-                    selectedCustomStations.delete(index);
-                    selectedCustomStations.add(index + 1);
-                }
-            }
-            
-            saveCustomToLocalStorage();
-            displayCustomStations();
-        }
+/* ---------- Парсинг плейлиста ---------- */
 
-        // ====== Добавление выделенных станций ======
-        function addSelectedStations() {
-            if (selectedStations.size === 0) {
-                alert('Выберите станции для добавления!');
-                return;
-            }
+let deckIdCounter = 0;
+const decks = {}; // id -> { filename, stations: [{name,url,flag}] } | null
 
-            let addedCount = 0;
-            const indices = Array.from(selectedStations).sort((a, b) => a - b);
-            
-            indices.forEach(index => {
-                const station = stations[index];
-                const exists = customStations.some(s => s.url === station.url);
-                if (!exists) {
-                    customStations.push({...station});
-                    addedCount++;
-                }
-            });
+function parsePlaylistText(text){
+  const lines = text.split(/\r?\n/);
+  const stations = [];
+  for(const raw of lines){
+    const line = raw.trim();
+    if(!line) continue;
+    let parts = line.split('\t');
+    if(parts.length < 2) parts = line.split(',');
+    if(parts.length < 2) continue;
+    const name = parts[0].trim();
+    const url = parts[1].trim();
+    const flag = parts[2] !== undefined ? parts[2].trim() : '0';
+    if(!url) continue;
+    stations.push({name, url, flag});
+  }
+  return stations;
+}
 
-            if (addedCount > 0) {
-                saveCustomToLocalStorage();
-                displayCustomStations();
-                document.getElementById('custom-now-playing').textContent = `Добавлено ${addedCount} станций`;
-                displayStations();
-            } else {
-                alert('Все выбранные станции уже есть в вашем плейлисте!');
-            }
-        }
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-        // ====== Рендер левого списка ======
-        function displayStations() {
-            const stationList = document.getElementById('station-list');
-            stationList.innerHTML = '';
-            if (stations.length === 0) { stationList.innerHTML = '<div class="station-item">Нет станций. Загрузите плейлист.</div>'; return; }
-            const filteredStations = stations.filter(station => !currentSearchQuery || station.name.toLowerCase().includes(currentSearchQuery) || station.url.toLowerCase().includes(currentSearchQuery));
-            if (filteredStations.length === 0) { stationList.innerHTML = '<div class="station-item">Станции не найдены</div>'; return; }
-            filteredStations.forEach((station, index) => {
-                const originalIndex = stations.indexOf(station);
-                const stationElement = document.createElement('div');
-                stationElement.className = 'station-item';
-                stationElement.dataset.index = originalIndex;
-                if (selectedStations.has(originalIndex)) stationElement.classList.add('selected');
-                if (isInCustomPlaylist(station.url)) stationElement.classList.add('in-favorites');
+/* ---------- Деки загрузки ---------- */
 
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = selectedStations.has(originalIndex);
-                checkbox.style.marginRight = '10px';
-                checkbox.addEventListener('click', (e) => { e.stopPropagation(); toggleStationSelection(originalIndex, false); });
+function renderDecks(){
+  const container = document.getElementById('decks');
+  container.innerHTML = '';
+  Object.keys(decks).forEach(id => {
+    const d = decks[id];
+    const box = document.createElement('div');
+    box.className = 'deck' + (d ? ' filled' : '');
+    box.innerHTML = `
+      <div class="deck-label"><span><span class="led"></span>${t('deckWord')} ${id}</span></div>
+      <div class="deck-drop" data-id="${id}">
+        ${d ? `
+          <div class="deck-info">
+            <div class="fname">${escapeHtml(d.filename)}</div>
+            <div><span class="deck-count">${d.stations.length}</span> ${t('deckStationsWord')}</div>
+          </div>
+          <div class="deck-preview">${d.stations.slice(0,6).map(s=>escapeHtml(s.name)).join('<br>')}${d.stations.length>6?'<br>…':''}</div>
+          <button class="deck-remove" data-id="${id}">${t('deckRemove')}</button>
+        ` : `
+          <div class="hint">${t('deckHint')}</div>
+        `}
+      </div>
+      <input type="file" data-id="${id}" accept=".csv,.txt,.tsv,.m3u,.m3u8" style="display:none">
+    `;
+    container.appendChild(box);
+  });
 
-                const numberSpan = document.createElement('span');
-                numberSpan.className = 'station-number';
-                numberSpan.textContent = `${originalIndex + 1}.`;
+  const addBtn = document.createElement('div');
+  addBtn.className = 'add-deck';
+  addBtn.id = 'addDeckBtn';
+  addBtn.textContent = t('addDeck');
+  container.appendChild(addBtn);
 
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'station-name-editable';
-                nameSpan.textContent = station.name;
+  attachDeckHandlers();
+  updateFreq();
+  updateMergeBtn();
+}
 
-                const selectAllCheckbox = document.getElementById('select-all-main');
-                if (selectedStations.size > 0) {
-                    const filteredStations = stations.filter(station => !currentSearchQuery || station.name.toLowerCase().includes(currentSearchQuery) || station.url.toLowerCase().includes(currentSearchQuery));
-                    const allFilteredSelected = filteredStations.every(station => selectedStations.has(stations.indexOf(station)));
-                    selectAllCheckbox.checked = allFilteredSelected;
-                    selectAllCheckbox.indeterminate = !allFilteredSelected && selectedStations.size > 0;
-                } else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
+function attachDeckHandlers(){
+  document.querySelectorAll('.deck-drop').forEach(drop => {
+    const id = drop.dataset.id;
+    const fileInput = document.querySelector(`input[type=file][data-id="${id}"]`);
+    drop.addEventListener('click', (e) => {
+      if(e.target.classList.contains('deck-remove')) return;
+      fileInput.click();
+    });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.closest('.deck').classList.add('drag'); });
+    drop.addEventListener('dragleave', () => drop.closest('.deck').classList.remove('drag'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault();
+      drop.closest('.deck').classList.remove('drag');
+      const f = e.dataTransfer.files[0];
+      if(f) loadFile(id, f);
+    });
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if(f) loadFile(id, f);
+    });
+  });
+  document.querySelectorAll('.deck-remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      delete decks[id];
+      renderDecks();
+    });
+  });
+  const addDeckBtn = document.getElementById('addDeckBtn');
+  if(addDeckBtn){
+    addDeckBtn.addEventListener('click', () => {
+      deckIdCounter++;
+      decks[deckIdCounter] = null;
+      renderDecks();
+    });
+  }
+}
 
-                const urlSpan = document.createElement('span');
-                urlSpan.className = 'station-url';
-                urlSpan.textContent = station.url;
+function loadFile(id, file){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const stations = parsePlaylistText(e.target.result);
+    decks[id] = { filename: file.name, stations };
+    renderDecks();
+  };
+  reader.readAsText(file);
+}
 
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-btn';
-                copyBtn.textContent = 'Копировать';
-                copyBtn.title = 'Скопировать ссылку станции';
-                copyBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    copyStationUrl(station.url, copyBtn);
-                });
+function updateFreq(){
+  const total = Object.values(decks).filter(Boolean).reduce((s,d)=>s+d.stations.length,0);
+  document.getElementById('freqDisplay').childNodes[0].nodeValue = String(total).padStart(3,'0');
+  document.getElementById('freqSmallText').textContent = t('freqLabel');
+}
 
-                const addBtn = document.createElement('button');
-                addBtn.className = 'add-btn';
-                addBtn.innerHTML = '&rarr;';
-                addBtn.title = 'Добавить в избранное';
-                addBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const exists = customStations.some(s => s.url === station.url);
-                    if (!exists) {
-                        customStations.push({...station});
-                        saveCustomToLocalStorage();
-                        displayCustomStations();
-                        document.getElementById('custom-now-playing').textContent = `Добавлена станция: ${station.name}`;
-                        displayStations();
-                    } else { alert('Эта станция уже есть в вашем плейлисте!'); }
-                });
+function updateMergeBtn(){
+  const filled = Object.values(decks).filter(Boolean).length;
+  document.getElementById('mergeBtn').disabled = filled < 1;
+}
 
-                stationElement.appendChild(checkbox);
-                stationElement.appendChild(numberSpan);
-                stationElement.appendChild(nameSpan);
-                stationElement.appendChild(urlSpan);
-                stationElement.appendChild(copyBtn);
-                stationElement.appendChild(addBtn);
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => setLang(btn.dataset.lang));
+});
 
-                stationElement.addEventListener('click', (e) => {
-                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-                        if (e.ctrlKey || e.metaKey) toggleStationSelection(originalIndex, false);
-                        else if (e.shiftKey) selectStationRange(originalIndex, false);
-                        else playStation(originalIndex);
-                    }
-                });
+deckIdCounter = 2;
+decks[1] = null;
+decks[2] = null;
+setLang('ru');
 
-                stationList.appendChild(stationElement);
-            });
-        }
+/* ---------- Объединение ---------- */
 
-        // ====== Рендер кастомного списка ======
-        function displayCustomStations() {
-            const customStationList = document.getElementById('custom-station-list');
-            customStationList.innerHTML = '';
-            if (customStations.length === 0) { customStationList.innerHTML = '<div class="station-item">Добавьте сюда станции из основного плеера</div>'; return; }
-            const selectAllCustomCheckbox = document.getElementById('select-all-custom');
-            if (selectedCustomStations.size > 0) {
-                const filteredStations = customStations.filter(station => !customSearchQuery || station.name.toLowerCase().includes(customSearchQuery) || station.url.toLowerCase().includes(customSearchQuery));
-                const allFilteredSelected = filteredStations.every(station => selectedCustomStations.has(customStations.indexOf(station)));
-                selectAllCustomCheckbox.checked = allFilteredSelected;
-                selectAllCustomCheckbox.indeterminate = !allFilteredSelected && selectedCustomStations.size > 0;
-            } else { selectAllCustomCheckbox.checked = false; selectAllCustomCheckbox.indeterminate = false; }
+document.getElementById('mergeBtn').addEventListener('click', () => {
+  const dedupe = document.getElementById('dedupe').checked;
+  const sortMode = document.getElementById('sortMode').value;
 
-            const filteredStations = customStations.filter(station => !customSearchQuery || station.name.toLowerCase().includes(customSearchQuery) || station.url.toLowerCase().includes(customSearchQuery));
-            if (filteredStations.length === 0) { customStationList.innerHTML = '<div class="station-item">Станции не найдены</div>'; return; }
+  const filledDecks = Object.values(decks).filter(Boolean);
+  let merged = [];
+  filledDecks.forEach(d => merged.push(...d.stations));
 
-            filteredStations.forEach((station, index) => {
-                const originalIndex = customStations.indexOf(station);
-                const stationElement = document.createElement('div');
-                stationElement.className = 'station-item';
-                stationElement.draggable = true;
-                stationElement.dataset.index = originalIndex;
-                if (selectedCustomStations.has(originalIndex)) stationElement.classList.add('selected');
+  let dupCount = 0;
+  if(dedupe){
+    const seen = new Set();
+    const deduped = [];
+    for(const s of merged){
+      const key = s.url.trim().toLowerCase().replace(/\/+$/,'');
+      if(seen.has(key)){ dupCount++; continue; }
+      seen.add(key);
+      deduped.push(s);
+    }
+    merged = deduped;
+  }
 
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = selectedCustomStations.has(originalIndex);
-                checkbox.style.marginRight = '10px';
-                checkbox.addEventListener('click', (e) => { e.stopPropagation(); toggleStationSelection(originalIndex, true); });
+  if(sortMode === 'name'){
+    merged = merged.slice().sort((a,b) => a.name.localeCompare(b.name));
+  }
 
-                const numberSpan = document.createElement('span');
-                numberSpan.className = 'station-number';
-                numberSpan.textContent = `${originalIndex + 1}.`;
+  lastMerged = merged;
+  document.getElementById('statSources').textContent = filledDecks.length;
+  document.getElementById('statDup').textContent = dupCount;
+  document.getElementById('result').classList.add('show');
+  renderStationList();
+});
 
-                const nameContainer = document.createElement('div');
-                nameContainer.className = 'station-name-editable';
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = station.name;
-                nameContainer.appendChild(nameSpan);
+/* ---------- Редактируемый список станций ---------- */
 
-                nameContainer.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    const nameInput = document.createElement('input');
-                    nameInput.type = 'text';
-                    nameInput.value = station.name;
-                    nameInput.className = 'station-name-input';
-                    nameContainer.innerHTML = '';
-                    nameContainer.appendChild(nameInput);
-                    nameInput.focus();
-                    const handleNameChange = () => {
-                        const newName = nameInput.value.trim();
-                        if (newName) {
-                            station.name = newName;
-                            saveCustomToLocalStorage();
-                            displayCustomStations();
-                            displayStations();
-                        }
-                    };
-                    nameInput.addEventListener('blur', handleNameChange);
-                    nameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleNameChange(); });
-                });
+let lastMerged = [];
+let dragSrcIndex = null;
+let currentPlayingIndex = -1;
+const player = new Audio();
 
-                const urlSpan = document.createElement('span');
-                urlSpan.className = 'station-url';
-                urlSpan.textContent = station.url;
 
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
-                removeBtn.textContent = '✕';
-                removeBtn.title = 'Удалить из плейлиста';
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    customStations.splice(originalIndex, 1);
-                    selectedCustomStations.delete(originalIndex);
-                    saveCustomToLocalStorage();
-                    displayCustomStations();
-                    displayStations();
-                });
+function copyUrl(url){
+  navigator.clipboard.writeText(url).then(()=>{
+    alert('Ссылка скопирована');
+  });
+}
 
-                stationElement.appendChild(checkbox);
-                stationElement.appendChild(numberSpan);
-                stationElement.appendChild(nameContainer);
-                stationElement.appendChild(urlSpan);
-                stationElement.appendChild(removeBtn);
+function deleteSelectedStations(){
+  const checked = [...document.querySelectorAll('.station-check:checked')]
+    .map(el => Number(el.dataset.index))
+    .sort((a,b)=>b-a);
 
-                stationElement.addEventListener('click', (e) => {
-                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-                        if (e.ctrlKey || e.metaKey) toggleStationSelection(originalIndex, true);
-                        else if (e.shiftKey) selectStationRange(originalIndex, true);
-                        else playCustomStation(originalIndex);
-                    }
-                });
+  checked.forEach(idx => {
+    if(currentPlayingIndex === idx) stopPlayback();
+    lastMerged.splice(idx,1);
+  });
 
-                customStationList.appendChild(stationElement);
-            });
-        }
+  renderStationList();
+}
 
-        // ====== Управление выделением ======
-        function toggleStationSelection(index, isCustom) {
-            const selectedSet = isCustom ? selectedCustomStations : selectedStations;
-            if (selectedSet.has(index)) selectedSet.delete(index);
-            else selectedSet.add(index);
-            if (isCustom) displayCustomStations();
-            else displayStations();
-        }
-        function selectStationRange(index, isCustom) {
-            const selectedSet = isCustom ? selectedCustomStations : selectedStations;
-            const list = isCustom ? customStations : stations;
-            if (selectedSet.size === 0) { selectedSet.add(index); }
-            else {
-                const selectedIndices = Array.from(selectedSet);
-                const minIndex = Math.min(...selectedIndices);
-                const maxIndex = Math.max(...selectedIndices);
-                const startIndex = Math.min(minIndex, index);
-                const endIndex = Math.max(maxIndex, index);
-                for (let i = startIndex; i <= endIndex; i++) { selectedSet.add(i); }
-            }
-            if (isCustom) displayCustomStations();
-            else displayStations();
-        }
-        function selectAllStations(isCustom) {
-            const selectedSet = isCustom ? selectedCustomStations : selectedStations;
-            const list = isCustom ? customStations : stations;
-            const filteredList = isCustom ? customStations.filter(station => !customSearchQuery || station.name.toLowerCase().includes(customSearchQuery) || station.url.toLowerCase().includes(customSearchQuery)) : stations.filter(station => !currentSearchQuery || station.name.toLowerCase().includes(currentSearchQuery) || station.url.toLowerCase().includes(currentSearchQuery));
-            const allCurrentlySelected = filteredList.every(station => selectedSet.has(isCustom ? customStations.indexOf(station) : stations.indexOf(station)));
-            if (allCurrentlySelected) { filteredList.forEach(station => selectedSet.delete(isCustom ? customStations.indexOf(station) : stations.indexOf(station))); }
-            else { filteredList.forEach(station => selectedSet.add(isCustom ? customStations.indexOf(station) : stations.indexOf(station))); }
-            if (isCustom) displayCustomStations();
-            else displayStations();
-        }
+function renderStationList(){
+  document.getElementById('statTotal').textContent = lastMerged.length;
+  const list = document.getElementById('stationList');
 
-        // ====== Воспроизведение ======
-        function playStation(index) {
-            if (index < 0 || index >= stations.length) return;
-            currentStationIndex = index;
-            const station = stations[index];
-            audio.src = station.url;
-            audio.load();
-            audio.play().catch(error => { console.error('Ошибка воспроизведения:', error); document.getElementById('now-playing').textContent = 'Ошибка воспроизведения: ' + error.message; });
-            document.getElementById('now-playing').textContent = `Сейчас играет: ${station.name}`;
-            document.querySelectorAll('#station-list .station-item').forEach(item => item.classList.remove('active'));
-            const activeItem = document.querySelector(`#station-list .station-item[data-index="${index}"]`);
-            if (activeItem) activeItem.classList.add('active');
-            selectedStations = new Set([index]);
-            displayStations();
-        }
-        function playCustomStation(index) {
-            if (index < 0 || index >= customStations.length) return;
-            customStationIndex = index;
-            const station = customStations[index];
-            customAudio.src = station.url;
-            customAudio.load();
-            customAudio.play().catch(error => { console.error('Ошибка воспроизведения:', error); document.getElementById('custom-now-playing').textContent = 'Ошибка воспроизведения: ' + error.message; });
-            document.getElementById('custom-now-playing').textContent = `Сейчас играет: ${station.name}`;
-            document.querySelectorAll('#custom-station-list .station-item').forEach(item => item.classList.remove('active'));
-            const activeItem = document.querySelector(`#custom-station-list .station-item[data-index="${index}"]`);
-            if (activeItem) activeItem.classList.add('active');
-            selectedCustomStations = new Set([index]);
-            displayCustomStations();
-        }
-        function playNextStation(isCustom = false) {
-            if (isCustom) {
-                if (customStations.length === 0) return;
-                let nextIndex = (customStationIndex + 1) % customStations.length;
-                playCustomStation(nextIndex);
-            } else {
-                if (stations.length === 0) return;
-                let nextIndex = (currentStationIndex + 1) % stations.length;
-                playStation(nextIndex);
-            }
-        }
-        function playPrevStation(isCustom = false) {
-            if (isCustom) {
-                if (customStations.length === 0) return;
-                let prevIndex = (customStationIndex - 1 + customStations.length) % customStations.length;
-                playCustomStation(prevIndex);
-            } else {
-                if (stations.length === 0) return;
-                let prevIndex = (currentStationIndex - 1 + stations.length) % stations.length;
-                playStation(prevIndex);
-            }
-        }
-        function stopPlayback(isCustom = false) {
-            if (isCustom) {
-                customAudio.pause();
-                customAudio.src = '';
-                document.getElementById('custom-now-playing').textContent = 'Воспроизведение остановлено';
-                document.querySelectorAll('#custom-station-list .station-item').forEach(item => item.classList.remove('active'));
-            } else {
-                audio.pause();
-                audio.src = '';
-                document.getElementById('now-playing').textContent = 'Воспроизведение остановлено';
-                document.querySelectorAll('#station-list .station-item').forEach(item => item.classList.remove('active'));
-            }
-        }
+  if(lastMerged.length === 0){
+    list.innerHTML = `<div style="padding:18px;color:var(--muted);font-size:13px;text-align:center;">${t('emptyList')}</div>`;
+    return;
+  }
 
-        // ====== Сохранение плейлиста ======
-        function saveCustomPlaylist() {
-            if (customStations.length === 0) { alert('Ваш плейлист пуст!'); return; }
-            const csvContent = customStations
-                .map(station => `${(station.name || '').replace(/[\t\r\n]+/g, ' ').trim()}\t${(station.url || '').trim()}\t0`)
-                .join('\r\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const objectUrl = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', objectUrl);
-            link.setAttribute('download', 'playlist.csv');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(objectUrl);
-        }
+  list.innerHTML = lastMerged.map((s, i) => `
+    <div class="station-row${i===currentPlayingIndex ? ' playing':''}" draggable="true" data-index="${i}">
+      <div><input type="checkbox" class="station-check" data-index="${i}"></div>
+      <div class="s-idx">${i+1}</div>
+      <div class="s-handle" title="${t('titleDrag')}">⠿</div>
+      <div class="s-main">
+        <div class="s-name">${escapeHtml(s.name)}</div>
+        <div class="s-url" title="${escapeHtml(s.url)}">${escapeHtml(s.url)}</div>
+      </div>
+      <button class="icon-btn play${i===currentPlayingIndex ? ' is-playing':''}" data-index="${i}" title="${t('titleListen')}">${i===currentPlayingIndex ? '❙❙' : '▶'}</button>
+      <button class="icon-btn del" data-index="${i}" title="${t('titleDelete')}">✕</button>
+      <button class="icon-btn copy-btn" data-url="${escapeHtml(s.url)}" style="width:auto;padding:0 8px;">⧉</button>
+    </div>
+  `).join('');
 
-        // ====== Удаление выбранных станций ======
-        function removeSelectedStations() {
-            if (selectedCustomStations.size === 0) { alert('Выберите станции для удаления!'); return; }
-            if (!confirm(`Удалить ${selectedCustomStations.size} станций из плейлиста?`)) return;
-            const indicesToRemove = Array.from(selectedCustomStations).sort((a, b) => b - a);
-            indicesToRemove.forEach(index => customStations.splice(index, 1));
-            selectedCustomStations = new Set();
-            saveCustomToLocalStorage();
-            displayCustomStations();
-            displayStations();
-        }
+  attachStationHandlers();
+}
 
-        // ====== Инициализация ======
-        function init() {
-            loadStationsFromLocalStorage();
-            loadCustomFromLocalStorage();
-            displayStations();
-            displayCustomStations();
-            document.getElementById('volume-control').addEventListener('input', (e) => { audio.volume = e.target.value; });
-            document.getElementById('custom-volume-control').addEventListener('input', (e) => { customAudio.volume = e.target.value; });
-            document.getElementById('file-input').addEventListener('change', (e) => { if (e.target.files[0]) loadPlaylistFromFile(e.target.files[0]); });
-            document.getElementById('search-input').addEventListener('input', (e) => searchStations(e.target.value, false));
-            document.getElementById('custom-search-input').addEventListener('input', (e) => searchStations(e.target.value, true));
-            document.getElementById('play-btn').addEventListener('click', () => { if (currentStationIndex !== -1) playStation(currentStationIndex); else if (stations.length > 0) playStation(0); });
-            document.getElementById('custom-play-btn').addEventListener('click', () => { if (customStationIndex !== -1) playCustomStation(customStationIndex); else if (customStations.length > 0) playCustomStation(0); });
-            document.getElementById('stop-btn').addEventListener('click', () => stopPlayback(false));
-            document.getElementById('custom-stop-btn').addEventListener('click', () => stopPlayback(true));
-            document.getElementById('next-btn').addEventListener('click', () => playNextStation(false));
-            document.getElementById('custom-next-btn').addEventListener('click', () => playNextStation(true));
-            document.getElementById('prev-btn').addEventListener('click', () => playPrevStation(false));
-            document.getElementById('custom-prev-btn').addEventListener('click', () => playPrevStation(true));
-            document.getElementById('save-btn').addEventListener('click', saveCustomPlaylist);
-            document.getElementById('remove-selected-btn').addEventListener('click', removeSelectedStations);
-            document.getElementById('add-selected-btn').addEventListener('click', addSelectedStations);
-            document.getElementById('select-all-main').addEventListener('change', () => selectAllStations(false));
-            document.getElementById('select-all-custom').addEventListener('change', () => selectAllStations(true));
-            document.getElementById('sort-name').addEventListener('click', () => sortStations('name', false));
-            document.getElementById('sort-url').addEventListener('click', () => sortStations('url', false));
-            document.getElementById('custom-sort-name').addEventListener('click', () => sortStations('name', true));
-            document.getElementById('custom-sort-url').addEventListener('click', () => sortStations('url', true));
-            document.getElementById('custom-sort-up').addEventListener('click', moveSelectedStationsUp);
-            document.getElementById('custom-sort-down').addEventListener('click', moveSelectedStationsDown);
+function attachStationHandlers(){
+  const rows = document.querySelectorAll('.station-row');
 
-            audio.addEventListener('ended', () => playNextStation(false));
-            customAudio.addEventListener('ended', () => playNextStation(true));
-        }
+  rows.forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragSrcIndex = Number(row.dataset.index);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      rows.forEach(r => r.classList.remove('drop-before','drop-after'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      rows.forEach(r => r.classList.remove('drop-before','drop-after'));
+      row.classList.add(before ? 'drop-before' : 'drop-after');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetIndex = Number(row.dataset.index);
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      let insertAt = before ? targetIndex : targetIndex + 1;
+      if(dragSrcIndex === null || dragSrcIndex === targetIndex) return;
 
-        window.addEventListener('DOMContentLoaded', init);
-    </script>
+      const moved = lastMerged.splice(dragSrcIndex, 1)[0];
+      if(dragSrcIndex < insertAt) insertAt--;
+      lastMerged.splice(insertAt, 0, moved);
+
+      if(currentPlayingIndex === dragSrcIndex){
+        currentPlayingIndex = insertAt;
+      }
+      dragSrcIndex = null;
+      renderStationList();
+    });
+  });
+
+  document.querySelectorAll('.icon-btn.play').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.index);
+      if(currentPlayingIndex === idx){
+        stopPlayback();
+      } else {
+        playStation(idx);
+      }
+    });
+  });
+
+  
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => copyUrl(btn.dataset.url));
+  });
+
+  document.querySelectorAll('.icon-btn.del').forEach(btn => {
+
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.index);
+      if(currentPlayingIndex === idx) stopPlayback();
+      else if(currentPlayingIndex > idx) currentPlayingIndex--;
+      lastMerged.splice(idx, 1);
+      renderStationList();
+    });
+  });
+}
+
+function playStation(idx){
+  const s = lastMerged[idx];
+  if(!s) return;
+  currentPlayingIndex = idx;
+  player.pause();
+  player.src = s.url;
+  player.volume = 1;
+  showPlayerBar(s.name, t('playerConnecting'), false);
+  player.play().then(() => {
+    showPlayerBar(s.name, t('playerPlaying'), false);
+  }).catch(() => {
+    showPlayerBar(s.name, t('playerError'), true);
+  });
+  renderStationList();
+}
+
+player.addEventListener('error', () => {
+  if(currentPlayingIndex >= 0){
+    const s = lastMerged[currentPlayingIndex];
+    if(s) showPlayerBar(s.name, t('playerError'), true);
+  }
+});
+
+function stopPlayback(){
+  player.pause();
+  player.removeAttribute('src');
+  currentPlayingIndex = -1;
+  hidePlayerBar();
+  renderStationList();
+}
+
+function showPlayerBar(name, status, isError){
+  document.getElementById('playerBar').classList.add('show');
+  document.getElementById('playerName').textContent = name;
+  const statusEl = document.getElementById('playerStatus');
+  statusEl.textContent = status;
+  statusEl.classList.toggle('error', !!isError);
+}
+
+function hidePlayerBar(){
+  document.getElementById('playerBar').classList.remove('show');
+}
+
+document.getElementById('playerStop').addEventListener('click', stopPlayback);
+
+/* ---------- Скачивание ---------- */
+
+
+document.getElementById('deleteSelectedBtn')?.addEventListener('click', deleteSelectedStations);
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+
+  if(!lastMerged.length) return;
+  const text = lastMerged.map(s => `${s.name}\t${s.url}\t${s.flag}`).join('\n') + '\n';
+  const blob = new Blob([text], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  let fname = document.getElementById('outName').value.trim() || 'merged_playlist.csv';
+  a.href = url;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+</script>
 </body>
 </html>
